@@ -186,6 +186,51 @@
 
     @page { size: landscape; }
 
+
+    /* Dashboard refinement: pending shortcut + latest six records */
+    .dashboard-bottom-grid { display:grid; grid-template-columns:minmax(0,1fr); gap:16px; margin-top:24px; }
+    .view-pending-link {
+      position:relative; z-index:1; display:inline-flex; align-items:center; gap:9px;
+      margin-top:13px; padding:0; color:#67e8f9; background:transparent;
+      border:0; border-radius:0; font-size:12px; font-weight:700;
+    }
+    .view-pending-link:hover { color:#fff; opacity:1; text-shadow:0 0 12px rgba(34,211,238,.55); }
+    .view-pending-link span { font-size:17px; line-height:10px; }
+    .recent-activity-card {
+      padding:21px 22px; border-radius:15px; border:1px solid rgba(148,163,184,.17);
+      background:linear-gradient(145deg,rgba(23,31,45,.98),rgba(16,24,37,.98));
+      box-shadow:0 8px 24px rgba(0,0,0,.18);
+    }
+    .recent-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:14px; }
+    .section-kicker { color:#22d3ee; font-size:9px; font-weight:800; letter-spacing:1.5px; margin-bottom:5px; }
+    .recent-heading h3 { margin:0; color:#f1f6ff; font-size:17px; }
+    .recent-heading p { margin:5px 0 0; color:#8493aa; font-size:11px; }
+    .recent-live-dot { width:8px; height:8px; flex:0 0 auto; margin-top:5px; border-radius:50%; background:#20d6a2; box-shadow:0 0 12px rgba(32,214,162,.7); }
+    .recent-activity-list { display:grid; }
+    .recent-activity-item {
+      display:grid; grid-template-columns:34px minmax(0,1fr) auto; align-items:center; gap:12px;
+      padding:12px 2px; border-top:1px solid rgba(148,163,184,.12);
+    }
+    .recent-activity-icon {
+      display:grid; place-items:center; width:32px; height:32px; border-radius:9px;
+      color:#67e8f9; background:rgba(34,211,238,.10); border:1px solid rgba(34,211,238,.16);
+      font-size:15px;
+    }
+    .recent-activity-title { color:#e8effb; font-size:12px; font-weight:700; overflow-wrap:anywhere; }
+    .recent-activity-subtitle { color:#8796ad; font-size:10.5px; margin-top:4px; overflow-wrap:anywhere; }
+    .recent-activity-date { color:#8796ad; font-size:10px; text-align:right; white-space:nowrap; }
+    .recent-status {
+      display:inline-block; margin-top:4px; padding:3px 7px; border-radius:20px;
+      color:#f7d58a; background:rgba(245,158,11,.10); border:1px solid rgba(245,158,11,.18);
+      font-size:9px; font-weight:800; letter-spacing:.4px;
+    }
+    .recent-empty { padding:20px 5px; color:#8796ad; font-size:12px; text-align:center; }
+    @media (max-width:760px) {
+      .recent-activity-card { padding:17px 14px; }
+      .recent-activity-item { grid-template-columns:31px minmax(0,1fr); }
+      .recent-activity-date { grid-column:2; text-align:left; margin-top:-5px; }
+    }
+
     @media print {
       header, #homeScreen, #pendingCountBanner, .back-link,
       #sr_runBtn, #sr_printBtn,
@@ -406,7 +451,7 @@
     <nav class="side-nav" aria-label="Main navigation">
       <button type="button" class="side-link active" id="navDashboard"><span class="nav-icon">▦</span><span>Dashboard</span></button>
       <button type="button" class="side-link" id="navNewReturn"><span class="nav-icon">＋</span><span>New Supplier Return</span></button>
-      <button type="button" class="side-link" id="navUpdateReturn"><span class="nav-icon">↻</span><span>Update Return</span></button>
+      <button type="button" class="side-link" id="navUpdateReturn"><span class="nav-icon">↻</span><span>Pending Return</span></button>
       <button type="button" class="side-link" id="navSummary"><span class="nav-icon">▤</span><span>Summary Report</span></button>
     </nav>
     <div class="sidebar-footer">
@@ -436,6 +481,7 @@
           <div class="metric-top"><span class="metric-icon">↻</span><span class="metric-label">PENDING SUPPLIER RETURNS</span></div>
           <div class="metric-value" id="dashboardPendingCount">—</div>
           <div class="metric-foot">Returns awaiting completion</div>
+          <button class="view-pending-link" type="button" id="dashboardViewPending">View pending returns <span aria-hidden="true">→</span></button>
         </div>
         <div class="metric-card metric-card-accent">
           <div class="metric-top"><span class="metric-icon">＋</span><span class="metric-label">QUICK ACTION</span></div>
@@ -445,29 +491,21 @@
         </div>
       </section>
 
-      <div class="section-heading"><span>QUICK ACCESS</span><span class="section-line"></span></div>
-      <div class="home-tile" id="goNewReturnBtn">
-        <div class="icon">📦</div>
-        <div class="text">
-          <h3>New Return</h3>
-          <p>Log a new supplier return</p>
-        </div>
+      <div class="dashboard-bottom-grid">
+        <section class="recent-activity-card">
+          <div class="recent-heading">
+            <div>
+              <div class="section-kicker">LATEST UPDATES</div>
+              <h3>Recent Activity</h3>
+              <p>Latest 6 supplier return records</p>
+            </div>
+            <span class="recent-live-dot" title="Latest available records"></span>
+          </div>
+          <div id="recentActivityList" class="recent-activity-list">
+            <div class="recent-empty">Loading recent activity...</div>
+          </div>
+        </section>
       </div>
-      <div class="home-tile" id="goUpdateReturnBtn">
-        <div class="icon">🔎</div>
-        <div class="text">
-          <h3>Update Return</h3>
-          <p>Search, update, or delete a pending return</p>
-        </div>
-      </div>
-      <div class="home-tile" id="goSummaryReportBtn">
-        <div class="icon">📊</div>
-        <div class="text">
-          <h3>Summary Report</h3>
-          <p>View all pending returns, grouped by supplier, oldest first</p>
-        </div>
-      </div>
-      <div class="dashboard-note"><span class="note-glow"></span><div><strong>Keep every return moving.</strong><p>Review pending records regularly and update each return once processing is completed.</p></div></div>
     </div>
 
     <!-- ============ NEW RETURN ============ -->
@@ -884,6 +922,7 @@
       fillSelect('ud_status', statuses);
 
       renderPendingCount(data.pendingCount);
+      loadRecentActivity();
       startPendingCountPolling();
       loadSuppliers();
 
@@ -967,21 +1006,21 @@
     document.getElementById('navUpdateReturn').addEventListener('click', function () { showScreen('updateListScreen'); loadPendingList(); });
     document.getElementById('navSummary').addEventListener('click', function () { showScreen('summaryScreen'); });
     document.getElementById('dashboardNewReturn').addEventListener('click', function () { showScreen('newReturnScreen'); });
-
-    document.getElementById('goNewReturnBtn').addEventListener('click', function () { showScreen('newReturnScreen'); });
-    document.getElementById('backFromNewReturn').addEventListener('click', function () { showScreen('homeScreen'); });
-
-    document.getElementById('goUpdateReturnBtn').addEventListener('click', function () {
+    document.getElementById('dashboardViewPending').addEventListener('click', function () {
       showScreen('updateListScreen');
       loadPendingList();
+      var search = document.getElementById('searchInput');
+      if (search) search.focus();
     });
+
+    document.getElementById('backFromNewReturn').addEventListener('click', function () { showScreen('homeScreen'); });
+
     document.getElementById('backFromUpdateList').addEventListener('click', function () { showScreen('homeScreen'); });
     document.getElementById('backFromUpdateDetail').addEventListener('click', function () {
       showScreen('updateListScreen');
       renderPendingList(document.getElementById('searchInput').value.trim());
     });
 
-    document.getElementById('goSummaryReportBtn').addEventListener('click', function () { showScreen('summaryScreen'); });
     document.getElementById('backFromSummary').addEventListener('click', function () { showScreen('homeScreen'); });
 
     // ================= NEW RETURN =================
@@ -1126,6 +1165,7 @@
           nrQueue = [];
           renderNrPreview();
           renderPendingCount(result.pendingCount);
+          loadRecentActivity();
         })
         .catch(function (err) {
           btn.disabled = false;
@@ -1135,6 +1175,48 @@
             '). Your entries are still saved below - try again, or press Cancel to discard.');
         });
     });
+
+
+    function loadRecentActivity() {
+      var wrap = document.getElementById('recentActivityList');
+      if (!wrap) return;
+      wrap.innerHTML = '<div class="recent-empty">Loading recent activity...</div>';
+      api_('GET', '/api/returns')
+        .then(function (list) {
+          renderRecentActivity(list || []);
+        })
+        .catch(function () {
+          wrap.innerHTML = '<div class="recent-empty">Recent activity is temporarily unavailable.</div>';
+        });
+    }
+
+    function renderRecentActivity(list) {
+      var wrap = document.getElementById('recentActivityList');
+      if (!wrap) return;
+      var items = (list || []).slice().sort(function (a, b) {
+        var da = Date.parse(a.dateSubmitted || a.createdAt || a.updatedAt || '') || 0;
+        var db = Date.parse(b.dateSubmitted || b.createdAt || b.updatedAt || '') || 0;
+        return db - da;
+      }).slice(0, 6);
+
+      if (!items.length) {
+        wrap.innerHTML = '<div class="recent-empty">No supplier return records available.</div>';
+        return;
+      }
+
+      wrap.innerHTML = items.map(function (item) {
+        var rpo = escapeHtml(item.rpoNo || 'Supplier return');
+        var supplier = escapeHtml(item.supplier || 'Supplier not specified');
+        var date = escapeHtml(item.dateSubmitted || item.createdAt || '');
+        return '<div class="recent-activity-item">' +
+          '<div class="recent-activity-icon">↗</div>' +
+          '<div><div class="recent-activity-title">Supplier return · ' + rpo + '</div>' +
+          '<div class="recent-activity-subtitle">' + supplier + '</div>' +
+          '<span class="recent-status">PENDING</span></div>' +
+          '<div class="recent-activity-date">' + (date || 'Date unavailable') + '</div>' +
+          '</div>';
+      }).join('');
+    }
 
     // ================= UPDATE RETURN: LIST =================
 
