@@ -195,6 +195,198 @@
       .card { box-shadow: none; border: none; padding: 0; }
       table { font-size: 11px; }
     }
+
+    /* =========================================================
+       GOTS CHARCOAL & NEON THEME
+       Visual layer only: existing form/API behaviour is retained.
+       ========================================================= */
+    :root {
+      --purple-bg: #0b0f17;
+      --purple-mid: #303b4d;
+      --purple-dark: #8b5cf6;
+      --purple-darker: #d8dff0;
+      --text: #e8edf7;
+      --card-bg: #141b27;
+      --danger: #ef476f;
+      --danger-dark: #ff7894;
+      --success: #20d6a2;
+      --neon-cyan: #22d3ee;
+      --neon-violet: #a78bfa;
+      --neon-blue: #60a5fa;
+      --muted: #91a0b7;
+      --line: rgba(148,163,184,.16);
+    }
+    body {
+      background:
+        radial-gradient(ellipse at 82% 0%, rgba(34,211,238,.10), transparent 32%),
+        radial-gradient(ellipse at 20% 90%, rgba(139,92,246,.10), transparent 35%),
+        #0b0f17;
+      color: var(--text);
+    }
+    .app-sidebar {
+      position: fixed; inset: 0 auto 0 0; z-index: 100;
+      width: 252px; min-height: 100vh; padding: 26px 17px 20px;
+      display: flex; flex-direction: column; text-align: left;
+      color: #edf4ff;
+      background: linear-gradient(165deg, #151d2b 0%, #101722 58%, #111827 100%);
+      border-right: 1px solid rgba(34,211,238,.28);
+      box-shadow: 8px 0 35px rgba(0,0,0,.25), 1px 0 18px rgba(34,211,238,.06);
+    }
+    .brand-block { padding: 5px 12px 30px; }
+    .brand-mark {
+      width: 45px; height: 45px; display: grid; place-items: center;
+      border-radius: 14px; margin-bottom: 13px; font-size: 24px; font-weight: 800;
+      color: #07131b; background: linear-gradient(135deg,#22d3ee,#8b5cf6);
+      box-shadow: 0 0 22px rgba(34,211,238,.35);
+    }
+    .brand-name { font-size: 25px; font-weight: 800; letter-spacing: 2px; color: #f8fbff; }
+    .brand-subtitle { margin-top: 4px; color: #91a0b7; font-size: 9px; line-height: 1.55; letter-spacing: 1.5px; font-weight: 700; }
+    .sidebar-label { padding: 0 12px 10px; color: #718096; font-size: 10px; font-weight: 800; letter-spacing: 1.5px; }
+    .side-nav { display: grid; gap: 7px; }
+    .side-link {
+      display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 13px;
+      color: #aab7ca; background: transparent; border: 1px solid transparent;
+      border-radius: 10px; text-align: left; font-size: 13px; font-weight: 600;
+      transition: .18s ease;
+    }
+    .side-link:hover { color: #fff; background: rgba(34,211,238,.07); border-color: rgba(34,211,238,.18); opacity: 1; }
+    .side-link.active {
+      color: #fff; background: linear-gradient(100deg,rgba(34,211,238,.20),rgba(139,92,246,.16));
+      border-color: rgba(34,211,238,.38); box-shadow: inset 3px 0 0 #22d3ee, 0 0 18px rgba(34,211,238,.08);
+    }
+    .nav-icon { width: 20px; text-align: center; font-size: 18px; color: #22d3ee; }
+    .sidebar-footer {
+      margin-top: auto; padding: 15px 12px 4px; border-top: 1px solid var(--line);
+      display: flex; align-items: center; gap: 9px; color: #8392a8; font-size: 11px;
+    }
+    .status-dot { width: 7px; height: 7px; border-radius: 50%; background: #20d6a2; box-shadow: 0 0 10px #20d6a2; }
+    .container { max-width: none; margin: 0 0 0 252px; padding: 34px clamp(20px,4vw,58px) 60px; }
+    #statusBanner { border-radius: 10px; }
+    .dashboard-welcome {
+      display: flex; justify-content: space-between; align-items: flex-end; gap: 20px;
+      margin: 2px 0 27px; padding: 3px 1px 0;
+    }
+    .eyebrow { color: #22d3ee; font-size: 10px; letter-spacing: 1.8px; font-weight: 800; margin-bottom: 10px; }
+    .dashboard-welcome h2 { margin: 0; color: #f5f8ff; font-size: clamp(25px,3vw,34px); letter-spacing: -.7px; }
+    .dashboard-welcome p { color: #91a0b7; margin: 8px 0 0; font-size: 13px; }
+    .welcome-date { color: #aab7ca; font-size: 12px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 10px; background: rgba(20,27,39,.72); white-space: nowrap; }
+    .dashboard-metrics { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; margin-bottom: 30px; }
+    .metric-card {
+      position: relative; overflow: hidden; min-height: 165px; padding: 20px 22px;
+      border-radius: 15px; border: 1px solid rgba(34,211,238,.25);
+      background: linear-gradient(135deg,rgba(25,36,53,.98),rgba(17,25,39,.96));
+      box-shadow: 0 8px 28px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.04);
+    }
+    .metric-card:after {
+      content:""; position:absolute; width:180px; height:180px; border-radius:50%;
+      right:-65px; top:-95px; background:rgba(34,211,238,.09); filter:blur(2px);
+    }
+    .metric-card-accent { border-color: rgba(167,139,250,.30); }
+    .metric-card-accent:after { background:rgba(167,139,250,.12); }
+    .metric-top { display:flex; align-items:center; gap:10px; }
+    .metric-icon { display:grid; place-items:center; width:31px; height:31px; border-radius:9px; color:#22d3ee; background:rgba(34,211,238,.12); font-size:19px; }
+    .metric-card-accent .metric-icon { color:#c4b5fd; background:rgba(167,139,250,.14); }
+    .metric-label { color:#9baac0; font-size:10px; font-weight:800; letter-spacing:1.15px; }
+    .metric-value { margin-top:12px; color:#f7fbff; font-size:42px; line-height:1; font-weight:800; text-shadow:0 0 22px rgba(34,211,238,.22); }
+    .metric-foot { margin-top:9px; color:#8190a7; font-size:11px; }
+    .metric-action-title { margin-top:12px; color:#f7f8ff; font-size:21px; font-weight:750; }
+    .metric-action-button {
+      position:relative; z-index:1; margin-top:12px; padding:9px 13px; color:#f8faff;
+      border:1px solid rgba(167,139,250,.5); border-radius:9px;
+      background:linear-gradient(100deg,#6d4bd1,#4168c9);
+      box-shadow:0 0 18px rgba(139,92,246,.20); font-size:12px;
+    }
+    .section-heading { display:flex; align-items:center; gap:13px; margin:0 0 13px; color:#8493aa; font-size:10px; font-weight:800; letter-spacing:1.6px; }
+    .section-line { height:1px; flex:1; background:linear-gradient(90deg,rgba(34,211,238,.25),transparent); }
+    .card, .home-tile {
+      color:var(--text); background:linear-gradient(145deg,#171f2d,#121925);
+      border:1px solid rgba(148,163,184,.15); border-radius:13px;
+      box-shadow:0 8px 24px rgba(0,0,0,.18);
+    }
+    .home-tile { padding:18px 20px; margin-bottom:12px; }
+    .home-tile:hover { border-color:rgba(34,211,238,.42); box-shadow:0 8px 25px rgba(34,211,238,.07); }
+    .home-tile .icon { color:#22d3ee; background:rgba(34,211,238,.11); border:1px solid rgba(34,211,238,.16); }
+    .home-tile .text h3 { color:#edf4ff; }
+    .home-tile .text p { color:#91a0b7; }
+    .dashboard-note { display:flex; align-items:center; gap:13px; margin-top:20px; padding:17px 19px; border-radius:12px; border:1px solid rgba(167,139,250,.2); background:linear-gradient(100deg,rgba(139,92,246,.10),rgba(34,211,238,.04)); }
+    .dashboard-note strong { color:#e8eaff; font-size:12px; }
+    .dashboard-note p { margin:4px 0 0; color:#8e9bb0; font-size:11px; }
+    .note-glow { width:8px; height:8px; flex-shrink:0; border-radius:50%; background:#a78bfa; box-shadow:0 0 13px #a78bfa; }
+    .card { padding:20px; }
+    .card h2 { color:#eaf1ff; border-bottom-color:rgba(148,163,184,.16); }
+    .field label { color:#b7c4d8; }
+    .field input, .field select, .field textarea {
+      color:#edf4ff; background:#0e1520; border:1px solid #344257; border-radius:8px;
+    }
+    .field input::placeholder, .field textarea::placeholder { color:#66758c; }
+    .field input:focus, .field select:focus, .field textarea:focus { border-color:#22d3ee; box-shadow:0 0 0 3px rgba(34,211,238,.10); }
+    .field input[readonly] { background:#1a2433; color:#91a0b7; }
+    .combo-list { background:#151e2c; border-color:#22d3ee; box-shadow:0 10px 28px rgba(0,0,0,.4); }
+    .combo-item { border-bottom-color:rgba(148,163,184,.12); }
+    .combo-item .nm { color:#e8edf7; }
+    .combo-item .cd, .combo-hint { color:#91a0b7; }
+    .combo-item.active, .combo-item:hover { background:#233247; }
+    .combo-item.freetext .nm { color:#a5f3fc; }
+    .combo-item mark { background:rgba(34,211,238,.22); color:#eaffff; }
+    .combo-hint.ok { color:#20d6a2; }
+    .btn-primary { color:#07131b; background:linear-gradient(100deg,#22d3ee,#60a5fa); box-shadow:0 0 15px rgba(34,211,238,.14); }
+    .btn-secondary { color:#dbeafe; background:#29364a; border:1px solid #40516a; }
+    .btn-danger { color:#fff; background:linear-gradient(100deg,#e34c70,#b93660); }
+    .btn-success { color:#061b16; background:linear-gradient(100deg,#20d6a2,#6ee7b7); }
+    .back-link { color:#22d3ee; }
+    table { color:#dce6f5; }
+    th, td { border-bottom-color:rgba(148,163,184,.13); }
+    th { color:#9fb0c8; }
+    #submitCount { color:#22d3ee; }
+    .preview-empty, .list-empty { color:#8796ad; }
+    .pending-item { border-color:rgba(148,163,184,.18); background:#111a27; }
+    .pending-item:hover { border-color:#22d3ee; background:#172638; }
+    .pending-item .rpo { color:#e8f7ff; }
+    .pending-item .meta { color:#91a0b7; }
+    .pending-badge { color:#ffd98a; background:rgba(245,158,11,.13); border:1px solid rgba(245,158,11,.25); }
+    .detail-info .row { border-bottom-color:rgba(148,163,184,.13); }
+    .detail-info .row span:first-child { color:#91a0b7; }
+    .detail-info .row span:last-child { color:#e8edf7; }
+    .scanner-modal { background:rgba(2,6,12,.78); backdrop-filter:blur(5px); }
+    .scanner-box { color:#e8edf7; background:#151e2c; border:1px solid rgba(34,211,238,.3); }
+    .scanner-box h3 { color:#eaf7ff; }
+    .scanner-error { color:#ff7894; }
+    .sr-supplier-row td { background:#202b3c; color:#a5f3fc; }
+    #pendingCountBanner { background:rgba(245,158,11,.10)!important; color:#fcd58a!important; border-color:rgba(245,158,11,.25)!important; }
+    #statusBanner.error { background:rgba(239,71,111,.12); color:#ff9aaf; border-color:rgba(239,71,111,.3); }
+    #statusBanner.ok { background:rgba(32,214,162,.10); color:#75efc5; border-color:rgba(32,214,162,.28); }
+    .spinner { border-color:#344257; border-top-color:#22d3ee; }
+    #loadingOverlay { background:#0b0f17; }
+    #loadingOverlay p { color:#aab7ca; }
+    @media (max-width: 760px) {
+      .app-sidebar { width:76px; padding:18px 9px; align-items:center; }
+      .brand-block { padding:4px 0 24px; text-align:center; }
+      .brand-mark { margin:0 auto 8px; width:42px; height:42px; }
+      .brand-name { font-size:17px; letter-spacing:1px; }
+      .brand-subtitle, .sidebar-label, .side-link span:last-child, .sidebar-footer span:last-child { display:none; }
+      .side-nav { width:100%; }
+      .side-link { justify-content:center; padding:12px 5px; }
+      .nav-icon { font-size:20px; }
+      .sidebar-footer { justify-content:center; padding:15px 0 4px; }
+      .container { margin-left:76px; padding:23px 14px 45px; }
+      .dashboard-welcome { align-items:flex-start; flex-direction:column; }
+      .welcome-date { white-space:normal; }
+      .dashboard-metrics { grid-template-columns:1fr; }
+      .row2 { grid-template-columns:1fr 1fr; }
+    }
+    @media (max-width: 430px) {
+      .container { padding-left:10px; padding-right:10px; }
+      .card { padding:15px; }
+      .home-tile { padding:15px; }
+      .row2 { grid-template-columns:1fr; }
+      .btn-row { gap:7px; }
+      .btn-row button { padding:10px 9px; }
+    }
+    @media print {
+      .app-sidebar, .dashboard-welcome, .dashboard-metrics, .section-heading, .dashboard-note { display:none!important; }
+      .container { margin:0; padding:0; }
+    }
+
   </style>
 </head>
 <body>
@@ -204,8 +396,23 @@
     <p>Loading, please wait...</p>
   </div>
 
-  <header>
-    <h1>SHBN Goods Outbound Tracking System</h1>
+  <header class="app-sidebar">
+    <div class="brand-block">
+      <div class="brand-mark">G</div>
+      <div class="brand-name">GOTS</div>
+      <div class="brand-subtitle">GOODS OUTBOUND<br>TRACKING SYSTEM</div>
+    </div>
+    <div class="sidebar-label">WORKSPACE</div>
+    <nav class="side-nav" aria-label="Main navigation">
+      <button type="button" class="side-link active" id="navDashboard"><span class="nav-icon">▦</span><span>Dashboard</span></button>
+      <button type="button" class="side-link" id="navNewReturn"><span class="nav-icon">＋</span><span>New Supplier Return</span></button>
+      <button type="button" class="side-link" id="navUpdateReturn"><span class="nav-icon">↻</span><span>Update Return</span></button>
+      <button type="button" class="side-link" id="navSummary"><span class="nav-icon">▤</span><span>Summary Report</span></button>
+    </nav>
+    <div class="sidebar-footer">
+      <span class="status-dot"></span>
+      <span>System connected</span>
+    </div>
   </header>
 
   <div class="container" id="mainContent" style="display:none;">
@@ -219,6 +426,30 @@
 
     <!-- ============ HOME SCREEN ============ -->
     <div id="homeScreen">
+      <section class="dashboard-welcome">
+        <div>
+          <div class="eyebrow">OVERVIEW / SUPPLIER RETURNS</div>
+          <h2 id="welcomeGreeting">Welcome back</h2>
+          <p>Here's what's happening with your supplier returns.</p>
+        </div>
+        <div class="welcome-date" id="welcomeDate"></div>
+      </section>
+
+      <section class="dashboard-metrics">
+        <div class="metric-card">
+          <div class="metric-top"><span class="metric-icon">↻</span><span class="metric-label">PENDING SUPPLIER RETURNS</span></div>
+          <div class="metric-value" id="dashboardPendingCount">—</div>
+          <div class="metric-foot">Returns awaiting completion</div>
+        </div>
+        <div class="metric-card metric-card-accent">
+          <div class="metric-top"><span class="metric-icon">＋</span><span class="metric-label">QUICK ACTION</span></div>
+          <div class="metric-action-title">Create a new return</div>
+          <div class="metric-foot">Record a supplier return transaction</div>
+          <button class="metric-action-button" type="button" id="dashboardNewReturn">＋ New Supplier Return</button>
+        </div>
+      </section>
+
+      <div class="section-heading"><span>QUICK ACCESS</span><span class="section-line"></span></div>
       <div class="home-tile" id="goNewReturnBtn">
         <div class="icon">📦</div>
         <div class="text">
@@ -240,6 +471,7 @@
           <p>View all pending returns, grouped by supplier, oldest first</p>
         </div>
       </div>
+      <div class="dashboard-note"><span class="note-glow"></span><div><strong>Keep every return moving.</strong><p>Review pending records regularly and update each return once processing is completed.</p></div></div>
     </div>
 
     <!-- ============ NEW RETURN ============ -->
@@ -431,6 +663,17 @@
   </div>
 
   <script>
+
+    (function setDashboardGreeting() {
+      var now = new Date();
+      var hour = now.getHours();
+      var greeting = hour < 12 ? 'Good morning' : (hour < 18 ? 'Good afternoon' : 'Good evening');
+      var greetingEl = document.getElementById('welcomeGreeting');
+      var dateEl = document.getElementById('welcomeDate');
+      if (greetingEl) greetingEl.textContent = greeting + '!';
+      if (dateEl) dateEl.textContent = now.toLocaleDateString(undefined, { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+    })();
+
     // ---------- State ----------
     var departments = [];
     var reasons = [];
@@ -659,6 +902,8 @@
     var PENDING_POLL_INTERVAL_MS = 30000;
 
     function renderPendingCount(count) {
+      var dashboardCount = document.getElementById('dashboardPendingCount');
+      if (dashboardCount) dashboardCount.textContent = Number(count || 0).toLocaleString();
       var banner = document.getElementById('pendingCountBanner');
       var textEl = document.getElementById('pendingCountText');
       if (!count || count <= 0) {
@@ -710,12 +955,29 @@
     }
 
     // ---------- Navigation ----------
+    function setActiveNav(id) {
+      ['navDashboard', 'navNewReturn', 'navUpdateReturn', 'navSummary'].forEach(function (navId) {
+        var el = document.getElementById(navId);
+        if (el) el.classList.toggle('active', navId === id);
+      });
+    }
+
     function showScreen(id) {
       ['homeScreen', 'newReturnScreen', 'updateListScreen', 'updateDetailScreen', 'summaryScreen'].forEach(function (s) {
         document.getElementById(s).style.display = (s === id) ? 'block' : 'none';
       });
+      if (id === 'homeScreen') setActiveNav('navDashboard');
+      else if (id === 'newReturnScreen') setActiveNav('navNewReturn');
+      else if (id === 'updateListScreen' || id === 'updateDetailScreen') setActiveNav('navUpdateReturn');
+      else if (id === 'summaryScreen') setActiveNav('navSummary');
       showStatus('statusBanner', '', '');
     }
+
+    document.getElementById('navDashboard').addEventListener('click', function () { showScreen('homeScreen'); });
+    document.getElementById('navNewReturn').addEventListener('click', function () { showScreen('newReturnScreen'); });
+    document.getElementById('navUpdateReturn').addEventListener('click', function () { showScreen('updateListScreen'); loadPendingList(); });
+    document.getElementById('navSummary').addEventListener('click', function () { showScreen('summaryScreen'); });
+    document.getElementById('dashboardNewReturn').addEventListener('click', function () { showScreen('newReturnScreen'); });
 
     document.getElementById('goNewReturnBtn').addEventListener('click', function () { showScreen('newReturnScreen'); });
     document.getElementById('backFromNewReturn').addEventListener('click', function () { showScreen('homeScreen'); });
