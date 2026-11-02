@@ -434,38 +434,64 @@
 
 
     /* =========================================================
-       PENDING RETURN screen (detail view)
+       PENDING RETURN screen (detail view) - fills the page width
        ========================================================= */
-    .pr-wrap { max-width: 820px; }
-    .pr-head { margin: 4px 0 20px; }
-    .pr-crumb { color:#22d3ee; font-size:10px; font-weight:800; letter-spacing:1.5px; }
-    .pr-crumb span { color:#5b6b83; margin:0 3px; }
-    .pr-title { margin:10px 0 6px; color:#f5f8ff; font-size:clamp(28px,5vw,36px); letter-spacing:-.6px; line-height:1.1; }
-    .pr-sub { margin:0; color:#91a0b7; font-size:12px; }
-    .pr-panel { border:1px solid rgba(148,163,184,.16); border-radius:14px; overflow:hidden; background:#0f1622; box-shadow:0 10px 30px rgba(0,0,0,.22); }
-    .pr-panel-head { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:15px 18px; background:#0b111b; border-bottom:1px solid rgba(148,163,184,.12); }
-    .pr-panel-head h3 { margin:0; color:#eef4ff; font-size:15px; font-weight:700; }
-    .pr-badge { padding:3px 10px; color:#ffb067; font-size:10px; font-weight:700; border-radius:999px; background:rgba(249,115,22,.14); border:1px solid rgba(249,115,22,.32); }
-    .pr-panel-body { padding:16px; display:grid; gap:14px; }
-    .pr-card { padding:16px 16px 14px; border-radius:12px; background:linear-gradient(145deg,#162030,#121b29); border:1px solid rgba(148,163,184,.14); }
-    .pr-label { color:#8393aa; font-size:10px; letter-spacing:.3px; }
-    .pr-rpo { margin-top:7px; color:#f7fbff; font-size:25px; font-weight:800; letter-spacing:.3px; word-break:break-all; }
-    .pr-divider { height:1px; margin:15px 0 14px; background:rgba(148,163,184,.16); }
-    .pr-grid { display:grid; grid-template-columns:1fr 1fr; gap:17px 16px; }
+    .pr-wrap { width:100%; }
+    .pr-head { margin: 6px 0 22px; }
+    .pr-crumb { color:#22d3ee; font-size:12px; font-weight:800; letter-spacing:1.6px; }
+    .pr-crumb span { color:#5b6b83; margin:0 4px; }
+    .pr-title { margin:12px 0 8px; color:#f5f8ff; font-size:clamp(32px,4.2vw,46px); letter-spacing:-.8px; line-height:1.08; }
+    .pr-sub { margin:0; color:#9fb0c8; font-size:15px; }
+    .pr-panel { border:1px solid rgba(148,163,184,.16); border-radius:16px; overflow:hidden; background:#0f1622; box-shadow:0 10px 30px rgba(0,0,0,.22); }
+    .pr-panel-head { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:18px 24px; background:#0b111b; border-bottom:1px solid rgba(148,163,184,.12); }
+    .pr-panel-head h3 { margin:0; color:#eef4ff; font-size:19px; font-weight:700; }
+    .pr-badge { padding:5px 14px; color:#ffb067; font-size:12.5px; font-weight:700; border-radius:999px; background:rgba(249,115,22,.14); border:1px solid rgba(249,115,22,.32); }
+    .pr-panel-body { padding:22px; display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,1fr); gap:20px; align-items:start; }
+    .pr-col { display:grid; gap:20px; min-width:0; }
+    .pr-card { padding:22px 24px 20px; border-radius:14px; background:linear-gradient(145deg,#162030,#121b29); border:1px solid rgba(148,163,184,.14); }
+    .pr-label { color:#91a2ba; font-size:12.5px; letter-spacing:.3px; }
+    .pr-rpo { margin-top:9px; color:#f7fbff; font-size:clamp(30px,3.2vw,38px); font-weight:800; letter-spacing:.4px; word-break:break-all; }
+    .pr-divider { height:1px; margin:20px 0 19px; background:rgba(148,163,184,.16); }
+    .pr-grid { display:grid; grid-template-columns:1fr 1fr; gap:24px 22px; }
     .pr-grid > div { min-width:0; }
-    .pr-value { margin-top:6px; color:#f3f7ff; font-size:12.5px; font-weight:800; letter-spacing:.2px; word-break:break-word; }
-    .pr-value-normal { font-weight:600; font-size:13px; }
-    .pr-remark { margin-top:16px; padding-top:13px; border-top:1px solid rgba(148,163,184,.12); }
-    .pr-card-title { margin:0 0 14px; color:#f3f7ff; font-size:14px; font-weight:700; }
-    .pr-row { display:flex; justify-content:space-between; align-items:baseline; gap:14px; padding:6px 0; font-size:11px; }
-    .pr-row span { color:#8393aa; }
+    .pr-value { margin-top:8px; color:#f3f7ff; font-size:16.5px; font-weight:800; letter-spacing:.2px; word-break:break-word; }
+    .pr-value-normal { font-weight:600; font-size:15.5px; }
+    .pr-remark { margin-top:22px; padding-top:18px; border-top:1px solid rgba(148,163,184,.12); }
+    .pr-card-title { margin:0 0 18px; color:#f3f7ff; font-size:18px; font-weight:700; }
+    .pr-row { display:flex; justify-content:space-between; align-items:baseline; gap:16px; padding:10px 0; font-size:15px; }
+    .pr-row + .pr-row { border-top:1px solid rgba(148,163,184,.08); }
+    .pr-row span { color:#91a2ba; }
     .pr-row b { color:#f3f7ff; font-weight:800; text-align:right; }
-    #updateDetailScreen .field { margin-bottom:14px; }
-    #updateDetailScreen .field label { color:#9fb0c8; font-size:11px; font-weight:500; }
-    #updateDetailScreen .field input, #updateDetailScreen .field select { padding:11px 12px; font-size:13px; }
+    #updateDetailScreen .field { margin-bottom:18px; }
+    #updateDetailScreen .field label { color:#b7c4d8; font-size:13.5px; font-weight:500; margin-bottom:7px; }
+    #updateDetailScreen .field input, #updateDetailScreen .field select { padding:13px 14px; font-size:15px; }
     #updateDetailScreen input[type="date"] { color-scheme: dark; }
-    #updateDetailScreen .btn-row { margin-top:4px; }
-    #updateDetailScreen .btn-row button { padding:12px 10px; font-size:13px; }
+    #updateDetailScreen .btn-row { margin-top:6px; gap:12px; }
+    #updateDetailScreen .btn-row button { padding:14px 12px; font-size:15px; }
+    @media (min-width: 1001px) {
+      /* both columns end at the same height: the update card stretches to match */
+      .pr-panel-body { align-items:stretch; }
+      .pr-col:last-child { grid-template-rows:1fr; }
+      .pr-col:last-child .pr-card { display:flex; flex-direction:column; }
+      #updateDetailScreen .pr-col:last-child .pr-card .btn-row { margin-top:auto; padding-top:10px; }
+      #updateDetailScreen .pr-col:last-child .pr-card .field { flex:1 1 auto; }
+    }
+    @media (max-width: 1000px) {
+      .pr-panel-body { grid-template-columns:1fr; }
+    }
+    @media (max-width: 560px) {
+      .pr-panel-head { padding:15px 16px; }
+      .pr-panel-head h3 { font-size:17px; }
+      .pr-panel-body { padding:14px; gap:14px; }
+      .pr-col { gap:14px; }
+      .pr-card { padding:17px 16px 16px; }
+      .pr-grid { gap:20px 14px; }
+      .pr-rpo { font-size:29px; }
+      .pr-value { font-size:15px; }
+      .pr-label { font-size:12px; }
+      .pr-row { font-size:14px; }
+      .pr-card-title { font-size:16.5px; }
+    }
 
     /* =========================================================
        GOTS BRAND BOX - decorative emerald & mint 3D cardboard box
@@ -536,7 +562,6 @@
         </div>
         <div class="gb-shadow"></div>
       </div>
-      <div class="brand-mark">G</div>
       <div class="brand-name">GOTS</div>
       <div class="brand-subtitle">GOODS OUTBOUND<br>TRACKING SYSTEM</div>
     </div>
@@ -734,6 +759,7 @@
           </div>
 
           <div class="pr-panel-body">
+           <div class="pr-col">
             <!-- Card 1: reference + main facts -->
             <div class="pr-card">
               <div class="pr-label">RPO REFERENCE NUMBER</div>
@@ -761,6 +787,8 @@
               <div class="pr-row"><span>Date Submitted</span><b id="dt_dateSubmitted"></b></div>
             </div>
 
+           </div>
+           <div class="pr-col">
             <!-- Card 3: update status -->
             <div class="pr-card">
               <h4 class="pr-card-title">Update Return Status</h4>
@@ -789,6 +817,7 @@
                 <button class="btn-primary" id="ud_updateBtn" type="button">Update Return</button>
               </div>
             </div>
+           </div>
           </div>
         </section>
       </div>
