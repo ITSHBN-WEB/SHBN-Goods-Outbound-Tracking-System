@@ -1479,13 +1479,24 @@
         });
     }
 
+    // "3.11.2026 3.53PM" -> comparable number (minutes); unreadable text -> 0 (sorts last)
+    function stampValue_(t) {
+      var m = /^(\d{1,2})\.(\d{1,2})\.(\d{4}) (\d{1,2})\.(\d{2})(AM|PM)$/i.exec(t || '');
+      if (!m) return 0;
+      var h = Number(m[4]) % 12 + (m[6].toUpperCase() === 'PM' ? 12 : 0);
+      return Date.UTC(Number(m[3]), Number(m[2]) - 1, Number(m[1]), h, Number(m[5])) / 60000;
+    }
+
     function renderRecentActivity(list) {
       var wrap = document.getElementById('recentActivityList');
       if (!wrap) return;
+      // Newest first. dateSubmitted looks like "3.11.2026 3.53PM" (d.M.yyyy h.mmAM/PM), which
+      // Date.parse cannot read, so it is converted by hand; the row id breaks ties (higher = newer).
       var items = (list || []).slice().sort(function (a, b) {
-        var da = Date.parse(a.dateSubmitted || a.createdAt || a.updatedAt || '') || 0;
-        var db = Date.parse(b.dateSubmitted || b.createdAt || b.updatedAt || '') || 0;
-        return db - da;
+        var d = stampValue_(b.dateSubmitted) - stampValue_(a.dateSubmitted);
+        if (d !== 0) return d;
+        var ia = Number(a.id) || 0, ib = Number(b.id) || 0;
+        return ib - ia;
       }).slice(0, 6);
 
       if (!items.length) {
