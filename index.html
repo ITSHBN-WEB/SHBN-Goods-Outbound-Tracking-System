@@ -606,6 +606,9 @@
     .bk-help { margin:-4px 0 14px; color:#91a2ba; font-size:13.5px; }
     .bk-combo { position:relative; }
     .bk-combo input { padding-right:38px; }
+    .bk-clear { position:absolute; right:38px; top:50%; transform:translateY(-50%); width:26px; height:26px; padding:0; line-height:24px; font-size:20px; text-align:center; color:#cbd8ea; background:#29364a; border-radius:50%; }
+    #bk_rpoSearch + .bk-clear { right:10px; }
+    .bk-clear:hover { background:#ef476f; color:#fff; opacity:1; }
     .bk-caret { position:absolute; right:14px; top:50%; transform:translateY(-50%); color:#8393aa; pointer-events:none; }
     .bk-dd { position:absolute; left:0; right:0; top:calc(100% + 4px); z-index:30; max-height:300px; overflow-y:auto; border-radius:10px; background:#0e1520; border:1px solid #33465f; box-shadow:0 14px 34px rgba(0,0,0,.55); }
     .bk-dd-item { display:flex; justify-content:space-between; gap:12px; padding:11px 14px; cursor:pointer; color:#dbeafe; font-size:14px; border-bottom:1px solid rgba(148,163,184,.1); }
@@ -879,6 +882,7 @@
           <p class="bk-help">Type the supplier name, tick the RPOs that were completed, then press Continue.</p>
           <div class="field bk-combo" style="margin-bottom:0;">
             <input type="text" id="bk_supplier" placeholder="Select or type supplier name" autocomplete="off">
+            <button type="button" class="bk-clear" id="bk_supplierClear" title="Clear" aria-label="Clear supplier" style="display:none;">&times;</button>
             <span class="bk-caret">&#9662;</span>
             <div id="bk_dd" class="bk-dd" style="display:none;"></div>
           </div>
@@ -892,8 +896,9 @@
               <button type="button" class="btn-secondary bk-small" id="bk_untickAll">Untick all</button>
             </div>
           </div>
-          <div class="field" style="margin:0 0 12px;">
+          <div class="field bk-combo" style="margin:0 0 12px;">
             <input type="text" id="bk_rpoSearch" placeholder="Search RPO no. or brand within this supplier" autocomplete="off">
+            <button type="button" class="bk-clear" id="bk_rpoClear" title="Clear" aria-label="Clear search" style="display:none;">&times;</button>
           </div>
           <div id="bk_list"></div>
           <div class="list-empty" id="bk_empty" style="display:none;">No pending returns found.</div>
@@ -2198,6 +2203,7 @@
       bulkSel = {};
       hideBulkDropdown();
       renderBulk();
+      syncClearBtns_();
     }
     $id('bk_dd').addEventListener('mousedown', function (e) {
       var it = e.target.closest && e.target.closest('.bk-dd-item');
@@ -2225,6 +2231,19 @@
     });
     $id('bk_supplier').addEventListener('input', function () { bulkExact = ''; showBulkDropdown(); renderBulk(); });
     $id('bk_rpoSearch').addEventListener('input', renderBulk);
+    function syncClearBtns_() {
+      $id('bk_supplierClear').style.display = $id('bk_supplier').value ? 'block' : 'none';
+      $id('bk_rpoClear').style.display = $id('bk_rpoSearch').value ? 'block' : 'none';
+    }
+    ['bk_supplier', 'bk_rpoSearch'].forEach(function (id) { $id(id).addEventListener('input', syncClearBtns_); });
+    $id('bk_supplierClear').addEventListener('click', function () {
+      $id('bk_supplier').value = ''; bulkExact = ''; bulkSel = {}; $id('bk_rpoSearch').value = '';
+      renderBulk(); syncClearBtns_();
+      $id('bk_supplier').focus(); showBulkDropdown();
+    });
+    $id('bk_rpoClear').addEventListener('click', function () {
+      $id('bk_rpoSearch').value = ''; renderBulk(); syncClearBtns_(); $id('bk_rpoSearch').focus();
+    });
     // Tick / untick act on the rows currently shown (so a search + Tick all works)
     $id('bk_tickAll').addEventListener('click', function () {
       bulkShown.forEach(function (it) { bulkSel[it.id] = true; });
