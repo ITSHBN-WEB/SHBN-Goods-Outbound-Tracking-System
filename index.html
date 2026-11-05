@@ -604,6 +604,15 @@
     .seg-btn { padding:9px 20px; font-size:14px; font-weight:700; color:#9fb0c8; background:transparent; border-radius:8px; }
     .seg-btn.active { color:#07131b; background:linear-gradient(100deg,#22d3ee,#60a5fa); }
     .bk-help { margin:-4px 0 14px; color:#91a2ba; font-size:13.5px; }
+    .bk-combo { position:relative; }
+    .bk-combo input { padding-right:38px; }
+    .bk-caret { position:absolute; right:14px; top:50%; transform:translateY(-50%); color:#8393aa; pointer-events:none; }
+    .bk-dd { position:absolute; left:0; right:0; top:calc(100% + 4px); z-index:30; max-height:300px; overflow-y:auto; border-radius:10px; background:#0e1520; border:1px solid #33465f; box-shadow:0 14px 34px rgba(0,0,0,.55); }
+    .bk-dd-item { display:flex; justify-content:space-between; gap:12px; padding:11px 14px; cursor:pointer; color:#dbeafe; font-size:14px; border-bottom:1px solid rgba(148,163,184,.1); }
+    .bk-dd-item:last-child { border-bottom:0; }
+    .bk-dd-item:hover, .bk-dd-item.hl { background:#1b2739; }
+    .bk-dd-item b { color:#22d3ee; flex-shrink:0; }
+    .bk-dd-empty { padding:12px 14px; color:#8393aa; font-size:13px; }
     .bk-quick { margin-top:14px; display:flex; flex-wrap:wrap; gap:8px; }
     .bk-quick-title { width:100%; color:#8393aa; font-size:12px; letter-spacing:.4px; }
     .bk-chip { padding:8px 13px; font-size:13px; font-weight:600; color:#dbeafe; background:#1b2739; border:1px solid #33465f; border-radius:999px; }
@@ -868,10 +877,11 @@
         <div class="card">
           <h2>Bulk Update by Supplier</h2>
           <p class="bk-help">Type the supplier name, tick the RPOs that were completed, then press Continue.</p>
-          <div class="field" style="margin-bottom:0;">
-            <input type="text" id="bk_supplier" placeholder="Type supplier name" autocomplete="off">
+          <div class="field bk-combo" style="margin-bottom:0;">
+            <input type="text" id="bk_supplier" placeholder="Select or type supplier name" autocomplete="off">
+            <span class="bk-caret">&#9662;</span>
+            <div id="bk_dd" class="bk-dd" style="display:none;"></div>
           </div>
-          <div id="bk_quick" class="bk-quick"></div>
         </div>
 
         <div class="card" id="bk_listCard" style="display:none;">
@@ -882,8 +892,11 @@
               <button type="button" class="btn-secondary bk-small" id="bk_untickAll">Untick all</button>
             </div>
           </div>
+          <div class="field" style="margin:0 0 12px;">
+            <input type="text" id="bk_rpoSearch" placeholder="Search RPO no. or brand within this supplier" autocomplete="off">
+          </div>
           <div id="bk_list"></div>
-          <div class="list-empty" id="bk_empty" style="display:none;">No pending returns for this supplier.</div>
+          <div class="list-empty" id="bk_empty" style="display:none;">No pending returns found.</div>
         </div>
 
         <div class="bk-bar" id="bk_bar" style="display:none;">
@@ -2043,7 +2056,7 @@
       $id('bulkMode').style.display = bulkOn ? 'block' : 'none';
       $id('modeSingleBtn').classList.toggle('active', !bulkOn);
       $id('modeBulkBtn').classList.toggle('active', bulkOn);
-      if (bulkOn) { renderBulk(); $id('bk_supplier').focus(); }
+      if (bulkOn) { renderBulk(); }
     }
     $id('modeSingleBtn').addEventListener('click', function () { setBulkMode(false); });
     $id('modeBulkBtn').addEventListener('click', function () { setBulkMode(true); });
@@ -2074,45 +2087,36 @@
       return Object.keys(counts).sort().map(function (k) { return { name: k, n: counts[k] }; });
     }
 
+    var bulkBase = [];   // pending items matching the chosen supplier
     function renderBulk() {
       var q = $id('bk_supplier').value.trim();
-      var quick = $id('bk_quick'), listCard = $id('bk_listCard');
-
+      var listCard = $id('bk_listCard');
       if (!q) {
-        bulkExact = ''; bulkShown = []; bulkSel = {};
+        bulkExact = ''; bulkBase = []; bulkShown = []; bulkSel = {};
+        $id('bk_rpoSearch').value = '';
         listCard.style.display = 'none';
-        var sup = pendingSuppliers_();
-        quick.innerHTML = sup.length
-          ? '<div class="bk-quick-title">SUPPLIERS WITH PENDING RETURNS</div>' + sup.map(function (x, i) {
-              return '<button type="button" class="bk-chip" data-i="' + i + '">' + escapeHtml(x.name) + '<b>' + x.n + '</b></button>';
-            }).join('')
-          : '';
-        quick.onclick = function (e) {
-          var b = e.target.closest && e.target.closest('.bk-chip');
-          if (!b) return;
-          var pick = sup[Number(b.getAttribute('data-i'))];
-          bulkExact = pick.name.toUpperCase();
-          $id('bk_supplier').value = pick.name;
-          renderBulk();
-        };
         updateBulkBar();
         return;
       }
-
-      quick.innerHTML = '';
       var tokens = q.toUpperCase().split(/\s+/).filter(Boolean);
-      bulkShown = pendingList.filter(function (it) {
+      bulkBase = pendingList.filter(function (it) {
         var name = (String(it.supplier || '').trim() || '(No Supplier)').toUpperCase();
         return bulkExact ? name === bulkExact : tokens.every(function (t) { return name.indexOf(t) !== -1; });
       });
-      // only rows that are on screen can stay ticked
-      var visible = {};
-      bulkShown.forEach(function (it) { visible[it.id] = true; });
-      Object.keys(bulkSel).forEach(function (id) { if (!visible[id]) delete bulkSel[id]; });
+      var inBase = {};
+      bulkBase.forEach(function (it) { inBase[it.id] = true; });
+      Object.keys(bulkSel).forEach(function (id) { if (!inBase[id]) delete bulkSel[id]; });
+
+      // RPO / brand search narrows what is shown; ticks on hidden rows are kept
+      var rq = $id('bk_rpoSearch').value.trim().toUpperCase();
+      bulkShown = rq ? bulkBase.filter(function (it) {
+        return String(it.rpoNo || '').toUpperCase().indexOf(rq) !== -1 || String(it.brand || '').toUpperCase().indexOf(rq) !== -1;
+      }) : bulkBase.slice();
 
       listCard.style.display = 'block';
-      $id('bk_shownCount').textContent = bulkShown.length;
+      $id('bk_shownCount').textContent = bulkShown.length === bulkBase.length ? bulkBase.length : bulkShown.length + ' of ' + bulkBase.length;
       $id('bk_empty').style.display = bulkShown.length ? 'none' : 'block';
+      $id('bk_rpoSearch').style.display = bulkBase.length > 1 ? '' : 'none';
       $id('bk_tickAll').style.display = $id('bk_untickAll').style.display = bulkShown.length ? '' : 'none';
 
       var groups = groupBySupplier_(bulkShown);
@@ -2164,22 +2168,76 @@
     }
     function updateBulkBar() {
       var n = Object.keys(bulkSel).length;
-      $id('bk_bar').style.display = ($id('bk_supplier').value.trim() && bulkShown.length) ? 'flex' : 'none';
+      $id('bk_bar').style.display = ($id('bk_supplier').value.trim() && bulkBase.length) ? 'flex' : 'none';
       $id('bk_selCount').textContent = n + ' selected';
       $id('bk_continueBtn').disabled = n === 0;
       $id('bk_continueBtn').textContent = n ? 'Continue (' + n + ')' : 'Continue';
     }
 
-    $id('bk_supplier').addEventListener('input', function () { bulkExact = ''; renderBulk(); });
+    // ----- supplier dropdown (A-Z, filters as you type) -----
+    var bkDdItems = [], bkDdHl = -1;
+    function showBulkDropdown() {
+      var tokens = $id('bk_supplier').value.trim().toUpperCase().split(/\s+/).filter(Boolean);
+      bkDdItems = pendingSuppliers_().filter(function (x) {
+        var u = x.name.toUpperCase();
+        return tokens.every(function (t) { return u.indexOf(t) !== -1; });
+      });
+      bkDdHl = -1;
+      var dd = $id('bk_dd');
+      dd.innerHTML = bkDdItems.length ? bkDdItems.map(function (x, i) {
+        return '<div class="bk-dd-item" data-i="' + i + '"><span>' + escapeHtml(x.name) + '</span><b>' + x.n + '</b></div>';
+      }).join('') : '<div class="bk-dd-empty">No supplier with pending returns matches.</div>';
+      dd.style.display = 'block';
+    }
+    function hideBulkDropdown() { $id('bk_dd').style.display = 'none'; }
+    function pickBulkSupplier(i) {
+      var pick = bkDdItems[i]; if (!pick) return;
+      bulkExact = pick.name.toUpperCase();
+      $id('bk_supplier').value = pick.name;
+      $id('bk_rpoSearch').value = '';
+      bulkSel = {};
+      hideBulkDropdown();
+      renderBulk();
+    }
+    $id('bk_dd').addEventListener('mousedown', function (e) {
+      var it = e.target.closest && e.target.closest('.bk-dd-item');
+      if (!it) return;
+      e.preventDefault();
+      pickBulkSupplier(Number(it.getAttribute('data-i')));
+    });
+    $id('bk_supplier').addEventListener('focus', showBulkDropdown);
+    $id('bk_supplier').addEventListener('click', showBulkDropdown);
+    $id('bk_supplier').addEventListener('blur', function () { setTimeout(hideBulkDropdown, 120); });
+    $id('bk_supplier').addEventListener('keydown', function (e) {
+      var items = $id('bk_dd').querySelectorAll('.bk-dd-item');
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        if ($id('bk_dd').style.display === 'none') showBulkDropdown();
+        items = $id('bk_dd').querySelectorAll('.bk-dd-item');
+        if (!items.length) return;
+        bkDdHl = e.key === 'ArrowDown' ? Math.min(bkDdHl + 1, items.length - 1) : Math.max(bkDdHl - 1, 0);
+        Array.prototype.forEach.call(items, function (el, i) { el.classList.toggle('hl', i === bkDdHl); });
+        items[bkDdHl].scrollIntoView({ block: 'nearest' });
+      } else if (e.key === 'Enter') {
+        if (bkDdHl >= 0) { e.preventDefault(); pickBulkSupplier(bkDdHl); }
+        else if (bkDdItems.length === 1) { e.preventDefault(); pickBulkSupplier(0); }
+      } else if (e.key === 'Escape') hideBulkDropdown();
+    });
+    $id('bk_supplier').addEventListener('input', function () { bulkExact = ''; showBulkDropdown(); renderBulk(); });
+    $id('bk_rpoSearch').addEventListener('input', renderBulk);
+    // Tick / untick act on the rows currently shown (so a search + Tick all works)
     $id('bk_tickAll').addEventListener('click', function () {
       bulkShown.forEach(function (it) { bulkSel[it.id] = true; });
       renderBulk();
     });
-    $id('bk_untickAll').addEventListener('click', function () { bulkSel = {}; renderBulk(); });
+    $id('bk_untickAll').addEventListener('click', function () {
+      bulkShown.forEach(function (it) { delete bulkSel[it.id]; });
+      renderBulk();
+    });
 
     // ----- step 2: review -----
     $id('bk_continueBtn').addEventListener('click', function () {
-      var picked = bulkShown.filter(function (it) { return bulkSel[it.id]; });
+      var picked = bulkBase.filter(function (it) { return bulkSel[it.id]; });
       if (!picked.length) return;
       if (picked.length > 200) { alert('Please select 200 RPOs or fewer at a time.'); return; }
       bulkReview = groupBySupplier_(picked).reduce(function (acc, g) {
