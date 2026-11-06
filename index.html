@@ -664,6 +664,17 @@
     #br_status.error { display:block; background:rgba(239,71,111,.12); color:#ff9aaf; border:1px solid rgba(239,71,111,.3); }
     #br_status.ok { display:block; background:rgba(32,214,162,.10); color:#75efc5; border:1px solid rgba(32,214,162,.28); }
     @media print { #bulkReviewScreen, .bk-bar { display:none!important; } }
+
+    /* ---------- Entry: progress + busy button ---------- */
+    .progress { display:none; height:4px; margin:4px 0 14px; overflow:hidden; border-radius:4px; background:#1b2739; }
+    .progress.on { display:block; }
+    .progress i { display:block; height:100%; width:38%; border-radius:4px; background:linear-gradient(90deg,#22d3ee,#60a5fa); animation:prog 1.1s ease-in-out infinite; }
+    @keyframes prog { 0% { transform:translateX(-110%); } 100% { transform:translateX(280%); } }
+    button.busy { position:relative; padding-left:38px; }
+    button.busy::before { content:''; position:absolute; left:14px; top:50%; width:15px; height:15px; margin-top:-8px; border-radius:50%; border:2px solid rgba(255,255,255,.35); border-top-color:#fff; animation:spin .7s linear infinite; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    #be_table select { padding:7px 8px; font-size:13px; color:#edf4ff; background:#0e1520; border:1px solid #344257; border-radius:7px; }
+    .bk-allrow select { flex:1 1 170px; }
   </style>
 </head>
 <body>
@@ -758,6 +769,12 @@
     <div id="newReturnScreen" style="display:none;">
       <span class="back-link" id="backFromNewReturn">&larr; Back</span>
 
+      <div class="seg" role="tablist" aria-label="Entry mode">
+        <button type="button" class="seg-btn active" id="entrySingleBtn" role="tab">Single Entry</button>
+        <button type="button" class="seg-btn" id="entryBulkBtn" role="tab">Bulk Entry</button>
+      </div>
+
+      <div id="nrSingle">
       <div class="card">
         <h2>New Return</h2>
 
@@ -822,30 +839,102 @@
           <input type="text" id="nr_submittedBy" placeholder="Name">
         </div>
 
+        <div class="progress" id="nr_progress"><i></i></div>
         <div class="btn-row">
           <button class="btn-secondary" id="nr_clearBtn" type="button">Clear</button>
-          <button class="btn-primary" id="nr_addBtn" type="button">Add to List</button>
+          <button class="btn-primary" id="nr_submitBtn" type="button">Submit</button>
         </div>
       </div>
+      </div>
 
-      <div class="card">
-        <h2>Entries to Submit</h2>
-        <div id="nr_submitCount"></div>
-        <div class="table-scroll">
-          <table id="nr_previewTable">
-            <thead>
-              <tr>
-                <th>Supplier</th><th>Dept</th><th>Brand</th><th>RPO No</th>
-                <th>Qty</th><th>Carton</th><th>RPO Date</th><th>Reason</th><th>Submitted By</th><th></th>
-              </tr>
-            </thead>
-            <tbody id="nr_previewBody"></tbody>
-          </table>
-          <div class="preview-empty" id="nr_previewEmpty">No entries added yet.</div>
+      <!-- ===== Bulk entry ===== -->
+      <div id="nrBulk" style="display:none;">
+        <div class="card">
+          <h2>Bulk Entry</h2>
+          <p class="bk-help">Supplier and Submitted By are shared by every RPO in this batch.</p>
+          <div class="field">
+            <label>Supplier</label>
+            <div class="combo">
+              <input type="text" id="be_supplier" placeholder="Type a few letters of the supplier" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="be_supplierList">
+              <div id="be_supplierList" class="combo-list" role="listbox" style="display:none;"></div>
+            </div>
+            <div id="be_supplierHint" class="combo-hint"></div>
+          </div>
+          <div class="field" style="margin-bottom:0;">
+            <label>Submitted By</label>
+            <input type="text" id="be_submittedBy" placeholder="Name">
+          </div>
         </div>
-        <div class="btn-row" style="margin-top:14px;">
-          <button class="btn-danger" id="nr_cancelBtn" type="button">Cancel</button>
-          <button class="btn-success" id="nr_submitBtn" type="button" disabled>Submit All</button>
+
+        <div class="card">
+          <h2>Add RPO</h2>
+          <div class="row2">
+            <div class="field">
+              <label>Department</label>
+              <select id="be_department"><option value="">-- Select --</option></select>
+            </div>
+            <div class="field">
+              <label>Reason</label>
+              <select id="be_reason"><option value="">-- Select --</option></select>
+            </div>
+          </div>
+          <div class="row2">
+            <div class="field">
+              <label>RPO No</label>
+              <input type="text" id="be_rpoNo" placeholder="RPO number">
+            </div>
+            <div class="field">
+              <label>Brand</label>
+              <input type="text" id="be_brand" placeholder="Brand">
+            </div>
+          </div>
+          <div class="row2">
+            <div class="field">
+              <label>Total Item <span style="font-weight:400;opacity:.7;">(optional)</span></label>
+              <input type="number" id="be_totalItem" min="0" step="1" placeholder="Qty (optional)">
+            </div>
+            <div class="field">
+              <label>Total Carton</label>
+              <input type="number" id="be_totalCarton" min="0" step="1" placeholder="Carton qty">
+            </div>
+          </div>
+          <div class="row2">
+            <div class="field">
+              <label>RPO Date</label>
+              <input type="date" id="be_rpoDate">
+            </div>
+            <div class="field">
+              <label>Remark</label>
+              <input type="text" id="be_remark" placeholder="Optional remark">
+            </div>
+          </div>
+          <div class="btn-row">
+            <button class="btn-secondary" id="be_clearBtn" type="button">Clear</button>
+            <button class="btn-primary" id="be_addBtn" type="button">Add to List</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>RPOs to Submit <span id="be_count" style="font-weight:600;color:#91a2ba;"></span></h2>
+          <div class="bk-allrow" id="be_allRow" style="display:none;">
+            <label>Apply to all</label>
+            <select id="be_allDept"><option value="">Department...</option></select>
+            <select id="be_allReason"><option value="">Reason...</option></select>
+          </div>
+          <div class="table-scroll">
+            <table id="be_table">
+              <thead>
+                <tr><th>RPO No</th><th>Brand</th><th>Dept</th><th>Reason</th><th>Qty</th><th>Carton</th><th>RPO Date</th><th>Remark</th><th></th></tr>
+              </thead>
+              <tbody id="be_body"></tbody>
+            </table>
+            <div class="preview-empty" id="be_empty">No RPOs added yet.</div>
+          </div>
+          <div class="progress" id="be_progress"><i></i></div>
+          <div class="btn-row" style="margin-top:14px;">
+            <button class="btn-danger" id="be_cancelBtn" type="button">Clear List</button>
+            <button class="btn-success" id="be_submitBtn" type="button" disabled>Submit All</button>
+          </div>
         </div>
       </div>
     </div>
@@ -1129,7 +1218,6 @@
     var departments = [];
     var reasons = [];
     var statuses = [];
-    var nrQueue = [];          // New Return entries pending submission
     var pendingList = [];      // cached list of PENDING returns (Update Return)
     var currentDetailItem = null;
 
@@ -1359,6 +1447,12 @@
 
       fillSelect('nr_department', departments);
       fillSelect('nr_reason', reasons);
+      fillSelect('be_department', departments);
+      fillSelect('be_reason', reasons);
+      fillSelect('be_allDept', departments);
+      fillSelect('be_allReason', reasons);
+      document.getElementById('be_allDept').options[0].textContent = 'Department for all...';
+      document.getElementById('be_allReason').options[0].textContent = 'Reason for all...';
       fillSelect('ud_status', statuses);
 
       renderPendingCount(data.pendingCount);
@@ -1465,54 +1559,12 @@
 
     // ================= NEW RETURN =================
 
-    document.getElementById('nr_addBtn').addEventListener('click', function () {
-      var supplier = document.getElementById('nr_supplier').value.trim();
-      var department = document.getElementById('nr_department').value;
-      var brand = document.getElementById('nr_brand').value.trim();
-      var rpoNo = document.getElementById('nr_rpoNo').value.trim();
-      var totalItem = document.getElementById('nr_totalItem').value;
-      var totalCarton = document.getElementById('nr_totalCarton').value;
-      var rpoDateRaw = document.getElementById('nr_rpoDate').value;
-      var reason = document.getElementById('nr_reason').value;
-      var remark = document.getElementById('nr_remark').value.trim();
-      var submittedBy = document.getElementById('nr_submittedBy').value.trim();
-
-      var picked = nrSupplier.resolve();
-      if (picked.error) { alert(picked.error); return; }
-      var supplierCode = picked.code;
-      if (!department) { alert('Please select a department.'); return; }
-      if (!rpoNo) { alert('Please enter the RPO No.'); return; }
-      if (totalItem !== '' && (!/^\d+$/.test(totalItem) || Number(totalItem) <= 0)) { alert('Total Item must be a whole number of 1 or more, or leave it blank.'); return; }
-      if (!reason) { alert('Please select a reason.'); return; }
-      if (!submittedBy) { alert('Please enter who this was submitted by.'); return; }
-
-      var rpoDateDisplay = formatDateDisplay(rpoDateRaw);
-
-      // rpoDate = text shown in the preview table; rpoDateIso = yyyy-mm-dd sent to the server
-      nrQueue.push({
-        supplier: supplier, supplierCode: supplierCode, department: department, brand: brand,
-        rpoNo: rpoNo, totalItem: totalItem, totalCarton: totalCarton, rpoDate: rpoDateDisplay,
-        rpoDateIso: rpoDateRaw,
-        reason: reason, remark: remark, submittedBy: submittedBy
-      });
-
-      renderNrPreview();
-      clearNrForm();
-    });
-
-    document.getElementById('nr_clearBtn').addEventListener('click', clearNrForm);
-
-    function clearNrForm() {
-      nrSupplier.reset();
-      document.getElementById('nr_department').value = '';
-      document.getElementById('nr_brand').value = '';
-      document.getElementById('nr_rpoNo').value = '';
-      document.getElementById('nr_totalItem').value = '';
-      document.getElementById('nr_totalCarton').value = '';
-      document.getElementById('nr_rpoDate').value = '';
-      document.getElementById('nr_reason').value = '';
-      document.getElementById('nr_remark').value = '';
-      document.getElementById('nr_submittedBy').value = '';
+    function setBusy_(btn, progressId, on, label) {
+      btn.classList.toggle('busy', on);
+      btn.disabled = on;
+      if (label) btn.textContent = label;
+      var pg = document.getElementById(progressId);
+      if (pg) pg.classList.toggle('on', on);
     }
 
     // yyyy-mm-dd (from <input type=date>) -> d.M.yyyy, matching the sheet's date style
@@ -1522,88 +1574,181 @@
       return parseInt(parts[2], 10) + '.' + parseInt(parts[1], 10) + '.' + parts[0];
     }
 
-    function renderNrPreview() {
-      var body = document.getElementById('nr_previewBody');
-      var empty = document.getElementById('nr_previewEmpty');
-      var countEl = document.getElementById('nr_submitCount');
-      var submitBtn = document.getElementById('nr_submitBtn');
-      body.innerHTML = '';
+    function wholeOrBlank_(v) { return v === '' || (/^\d+$/.test(v) && Number(v) > 0); }
 
-      if (!nrQueue.length) {
-        empty.style.display = 'block';
-        countEl.textContent = '';
-        submitBtn.disabled = true;
-        return;
-      }
+    // ---- mode switch ----
+    function setEntryMode(bulk) {
+      document.getElementById('nrSingle').style.display = bulk ? 'none' : 'block';
+      document.getElementById('nrBulk').style.display = bulk ? 'block' : 'none';
+      document.getElementById('entrySingleBtn').classList.toggle('active', !bulk);
+      document.getElementById('entryBulkBtn').classList.toggle('active', bulk);
+    }
+    document.getElementById('entrySingleBtn').addEventListener('click', function () { setEntryMode(false); });
+    document.getElementById('entryBulkBtn').addEventListener('click', function () { setEntryMode(true); });
 
-      empty.style.display = 'none';
-      countEl.textContent = nrQueue.length + ' entrie(s) ready to submit';
-      submitBtn.disabled = false;
+    // ================= SINGLE ENTRY =================
+    document.getElementById('nr_clearBtn').addEventListener('click', clearNrForm);
 
-      nrQueue.forEach(function (e, i) {
-        var tr = document.createElement('tr');
-        tr.innerHTML =
-          '<td>' + escapeHtml(e.supplier) + '</td>' +
-          '<td>' + escapeHtml(e.department) + '</td>' +
-          '<td>' + escapeHtml(e.brand) + '</td>' +
-          '<td>' + escapeHtml(e.rpoNo) + '</td>' +
-          '<td>' + escapeHtml(e.totalItem) + '</td>' +
-          '<td>' + escapeHtml(e.totalCarton) + '</td>' +
-          '<td>' + escapeHtml(e.rpoDate) + '</td>' +
-          '<td>' + escapeHtml(e.reason) + '</td>' +
-          '<td>' + escapeHtml(e.submittedBy) + '</td>' +
-          '<td class="row-actions"></td>';
-
-        var delBtn = document.createElement('button');
-        delBtn.textContent = 'Delete';
-        delBtn.className = 'btn-danger';
-        delBtn.addEventListener('click', function () {
-          nrQueue.splice(i, 1);
-          renderNrPreview();
-        });
-        tr.querySelector('.row-actions').appendChild(delBtn);
-        body.appendChild(tr);
-      });
+    function clearNrForm() {
+      nrSupplier.reset();
+      ['nr_department', 'nr_brand', 'nr_rpoNo', 'nr_totalItem', 'nr_totalCarton', 'nr_rpoDate', 'nr_reason', 'nr_remark', 'nr_submittedBy']
+        .forEach(function (id) { document.getElementById(id).value = ''; });
     }
 
-    document.getElementById('nr_cancelBtn').addEventListener('click', function () {
-      if (!nrQueue.length) { clearNrForm(); return; }
-      if (!confirm('This will clear all ' + nrQueue.length + ' pending entries. Continue?')) return;
-      nrQueue = [];
-      renderNrPreview();
-      clearNrForm();
-    });
-
     document.getElementById('nr_submitBtn').addEventListener('click', function () {
-      if (!nrQueue.length) return;
+      var v = function (id) { return document.getElementById(id).value; };
+      var supplier = v('nr_supplier').trim(), department = v('nr_department'), brand = v('nr_brand').trim(),
+          rpoNo = v('nr_rpoNo').trim(), totalItem = v('nr_totalItem'), totalCarton = v('nr_totalCarton'),
+          rpoDate = v('nr_rpoDate'), reason = v('nr_reason'), remark = v('nr_remark').trim(), submittedBy = v('nr_submittedBy').trim();
+
+      var picked = nrSupplier.resolve();
+      if (picked.error) { alert(picked.error); return; }
+      if (!department) { alert('Please select a department.'); return; }
+      if (!rpoNo) { alert('Please enter the RPO No.'); return; }
+      if (!wholeOrBlank_(totalItem)) { alert('Total Item must be a whole number of 1 or more, or leave it blank.'); return; }
+      if (!reason) { alert('Please select a reason.'); return; }
+      if (!submittedBy) { alert('Please enter who this was submitted by.'); return; }
+
       var btn = this;
-      btn.disabled = true;
-      btn.textContent = 'Submitting...';
-
-      var entries = nrQueue.map(function (e) {
-        return {
-          supplier: e.supplier, supplierCode: e.supplierCode, department: e.department, brand: e.brand, rpoNo: e.rpoNo,
-          totalItem: e.totalItem, totalCarton: e.totalCarton, rpoDate: e.rpoDateIso,
-          reason: e.reason, remark: e.remark, submittedBy: e.submittedBy
-        };
-      });
-
-      api_('POST', '/api/returns', { entries: entries })
+      setBusy_(btn, 'nr_progress', true, 'Submitting...');
+      api_('POST', '/api/returns', { entries: [{
+        supplier: supplier, supplierCode: picked.code, department: department, brand: brand, rpoNo: rpoNo,
+        totalItem: totalItem, totalCarton: totalCarton, rpoDate: rpoDate, reason: reason, remark: remark, submittedBy: submittedBy
+      }] })
         .then(function (result) {
-          btn.disabled = false;
-          btn.textContent = 'Submit All';
-          showStatus('statusBanner', 'ok', 'Submitted ' + result.added + ' entrie(s).');
-          nrQueue = [];
-          renderNrPreview();
+          setBusy_(btn, 'nr_progress', false, 'Submit');
+          showStatus('statusBanner', 'ok', 'Submitted RPO ' + rpoNo + ' (' + supplier + ').');
+          clearNrForm();
           renderPendingCount(result.pendingCount);
           loadRecentActivity();
+          window.scrollTo(0, 0);
         })
         .catch(function (err) {
-          btn.disabled = false;
-          btn.textContent = 'Submit All';
-          showStatus('statusBanner', 'error', 'Connection problem: could not submit (' +
-            (err && err.message ? err.message : 'unknown error') +
-            '). Your entries are still saved below - try again, or press Cancel to discard.');
+          setBusy_(btn, 'nr_progress', false, 'Submit');
+          showStatus('statusBanner', 'error', 'Could not submit (' + (err && err.message ? err.message : 'unknown error') +
+            '). Your entry is still in the form - please try again.');
+          window.scrollTo(0, 0);
+        });
+    });
+
+    // ================= BULK ENTRY =================
+    var beRows = [];   // [{ rpoNo, brand, department, reason, totalItem, totalCarton, rpoDateIso, remark }]
+    var beSupplier = createSupplierPicker('be_supplier', 'be_supplierList', 'be_supplierHint');
+    ['be_supplier', 'be_brand', 'be_rpoNo', 'be_submittedBy'].forEach(function (id) { attachUppercase(document.getElementById(id)); });
+
+    function clearBeRowFields() {
+      // department and reason stay (usually the same for the next RPO); everything RPO-specific is cleared
+      ['be_rpoNo', 'be_brand', 'be_totalItem', 'be_totalCarton', 'be_rpoDate', 'be_remark']
+        .forEach(function (id) { document.getElementById(id).value = ''; });
+    }
+    document.getElementById('be_clearBtn').addEventListener('click', function () {
+      clearBeRowFields();
+      document.getElementById('be_department').value = '';
+      document.getElementById('be_reason').value = '';
+    });
+
+    document.getElementById('be_addBtn').addEventListener('click', function () {
+      var v = function (id) { return document.getElementById(id).value; };
+      var rpoNo = v('be_rpoNo').trim(), department = v('be_department'), reason = v('be_reason'), totalItem = v('be_totalItem');
+      if (!rpoNo) { alert('Please enter the RPO No.'); return; }
+      if (!department) { alert('Please select a department.'); return; }
+      if (!reason) { alert('Please select a reason.'); return; }
+      if (!wholeOrBlank_(totalItem)) { alert('Total Item must be a whole number of 1 or more, or leave it blank.'); return; }
+      if (beRows.some(function (r) { return r.rpoNo === rpoNo; })) { alert('RPO ' + rpoNo + ' is already in the list.'); return; }
+      beRows.push({
+        rpoNo: rpoNo, brand: v('be_brand').trim(), department: department, reason: reason,
+        totalItem: totalItem, totalCarton: v('be_totalCarton'), rpoDateIso: v('be_rpoDate'), remark: v('be_remark').trim()
+      });
+      clearBeRowFields();
+      renderBeList();
+      document.getElementById('be_rpoNo').focus();
+    });
+
+    function optionsHtml_(list, current) {
+      return '<option value="">-- Select --</option>' + list.map(function (x) {
+        return '<option' + (x === current ? ' selected' : '') + '>' + escapeHtml(x) + '</option>';
+      }).join('');
+    }
+
+    function renderBeList() {
+      var body = document.getElementById('be_body');
+      document.getElementById('be_empty').style.display = beRows.length ? 'none' : 'block';
+      document.getElementById('be_allRow').style.display = beRows.length ? 'flex' : 'none';
+      document.getElementById('be_count').textContent = beRows.length ? '(' + beRows.length + ')' : '';
+      document.getElementById('be_submitBtn').disabled = !beRows.length;
+      document.getElementById('be_submitBtn').textContent = beRows.length ? 'Submit ' + beRows.length + (beRows.length === 1 ? ' RPO' : ' RPOs') : 'Submit All';
+      body.innerHTML = beRows.map(function (r, i) {
+        return '<tr data-i="' + i + '"><td>' + escapeHtml(r.rpoNo) + '</td><td>' + escapeHtml(r.brand) + '</td>' +
+          '<td><select class="be-dept">' + optionsHtml_(departments, r.department) + '</select></td>' +
+          '<td><select class="be-reason">' + optionsHtml_(reasons, r.reason) + '</select></td>' +
+          '<td>' + escapeHtml(r.totalItem) + '</td><td>' + escapeHtml(r.totalCarton) + '</td>' +
+          '<td>' + escapeHtml(formatDateDisplay(r.rpoDateIso)) + '</td><td>' + escapeHtml(r.remark) + '</td>' +
+          '<td class="row-actions"><button type="button" class="btn-danger be-del">Delete</button></td></tr>';
+      }).join('');
+    }
+
+    document.getElementById('be_body').addEventListener('change', function (e) {
+      var tr = e.target.closest('tr'); if (!tr) return;
+      var r = beRows[Number(tr.getAttribute('data-i'))];
+      if (e.target.classList.contains('be-dept')) r.department = e.target.value;
+      if (e.target.classList.contains('be-reason')) r.reason = e.target.value;
+    });
+    document.getElementById('be_body').addEventListener('click', function (e) {
+      if (!e.target.classList.contains('be-del')) return;
+      beRows.splice(Number(e.target.closest('tr').getAttribute('data-i')), 1);
+      renderBeList();
+    });
+    document.getElementById('be_allDept').addEventListener('change', function () {
+      var val = this.value; if (!val) return;
+      beRows.forEach(function (r) { r.department = val; });
+      document.getElementById('be_department').value = val;
+      this.value = ''; renderBeList();
+    });
+    document.getElementById('be_allReason').addEventListener('change', function () {
+      var val = this.value; if (!val) return;
+      beRows.forEach(function (r) { r.reason = val; });
+      document.getElementById('be_reason').value = val;
+      this.value = ''; renderBeList();
+    });
+
+    document.getElementById('be_cancelBtn').addEventListener('click', function () {
+      if (!beRows.length) return;
+      if (!confirm('Remove all ' + beRows.length + ' RPOs from the list?')) return;
+      beRows = []; renderBeList();
+    });
+
+    document.getElementById('be_submitBtn').addEventListener('click', function () {
+      if (!beRows.length) return;
+      var picked = beSupplier.resolve();
+      if (picked.error) { alert(picked.error); return; }
+      var supplier = document.getElementById('be_supplier').value.trim();
+      var submittedBy = document.getElementById('be_submittedBy').value.trim();
+      if (!submittedBy) { alert('Please enter who this was submitted by.'); return; }
+      var bad = beRows.filter(function (r) { return !r.department || !r.reason; });
+      if (bad.length) { alert('Department and Reason are missing for RPO ' + bad[0].rpoNo + (bad.length > 1 ? ' and ' + (bad.length - 1) + ' more' : '') + '.'); return; }
+
+      var btn = this, n = beRows.length;
+      setBusy_(btn, 'be_progress', true, 'Submitting ' + n + (n === 1 ? ' RPO...' : ' RPOs...'));
+      api_('POST', '/api/returns', { entries: beRows.map(function (r) {
+        return { supplier: supplier, supplierCode: picked.code, department: r.department, brand: r.brand, rpoNo: r.rpoNo,
+          totalItem: r.totalItem, totalCarton: r.totalCarton, rpoDate: r.rpoDateIso, reason: r.reason, remark: r.remark, submittedBy: submittedBy };
+      }) })
+        .then(function (result) {
+          setBusy_(btn, 'be_progress', false);
+          showStatus('statusBanner', 'ok', 'Submitted ' + result.added + ' RPO' + (result.added === 1 ? '' : 's') + ' for ' + supplier + '.');
+          beRows = []; renderBeList();
+          beSupplier.reset();           // Submitted By is kept for the next batch
+          clearBeRowFields();
+          renderPendingCount(result.pendingCount);
+          loadRecentActivity();
+          window.scrollTo(0, 0);
+        })
+        .catch(function (err) {
+          setBusy_(btn, 'be_progress', false);
+          renderBeList();
+          showStatus('statusBanner', 'error', 'Could not submit (' + (err && err.message ? err.message : 'unknown error') +
+            '). Your list is still here - please try again.');
+          window.scrollTo(0, 0);
         });
     });
 
