@@ -864,6 +864,9 @@
             <label>Submitted By</label>
             <input type="text" id="be_submittedBy" placeholder="Name">
           </div>
+          <div class="btn-row" style="margin-top:14px;">
+            <button class="btn-secondary" id="be_clearShared" type="button">Clear</button>
+          </div>
         </div>
 
         <div class="card">
@@ -916,11 +919,6 @@
 
         <div class="card">
           <h2>RPOs to Submit <span id="be_count" style="font-weight:600;color:#91a2ba;"></span></h2>
-          <div class="bk-allrow" id="be_allRow" style="display:none;">
-            <label>Apply to all</label>
-            <select id="be_allDept"><option value="">Department...</option></select>
-            <select id="be_allReason"><option value="">Reason...</option></select>
-          </div>
           <div class="table-scroll">
             <table id="be_table">
               <thead>
@@ -1449,10 +1447,6 @@
       fillSelect('nr_reason', reasons);
       fillSelect('be_department', departments);
       fillSelect('be_reason', reasons);
-      fillSelect('be_allDept', departments);
-      fillSelect('be_allReason', reasons);
-      document.getElementById('be_allDept').options[0].textContent = 'Department for all...';
-      document.getElementById('be_allReason').options[0].textContent = 'Reason for all...';
       fillSelect('ud_status', statuses);
 
       renderPendingCount(data.pendingCount);
@@ -1641,6 +1635,10 @@
       ['be_rpoNo', 'be_brand', 'be_totalItem', 'be_totalCarton', 'be_rpoDate', 'be_remark']
         .forEach(function (id) { document.getElementById(id).value = ''; });
     }
+    document.getElementById('be_clearShared').addEventListener('click', function () {
+      beSupplier.reset();
+      document.getElementById('be_submittedBy').value = '';
+    });
     document.getElementById('be_clearBtn').addEventListener('click', function () {
       clearBeRowFields();
       document.getElementById('be_department').value = '';
@@ -1673,7 +1671,6 @@
     function renderBeList() {
       var body = document.getElementById('be_body');
       document.getElementById('be_empty').style.display = beRows.length ? 'none' : 'block';
-      document.getElementById('be_allRow').style.display = beRows.length ? 'flex' : 'none';
       document.getElementById('be_count').textContent = beRows.length ? '(' + beRows.length + ')' : '';
       document.getElementById('be_submitBtn').disabled = !beRows.length;
       document.getElementById('be_submitBtn').textContent = beRows.length ? 'Submit ' + beRows.length + (beRows.length === 1 ? ' RPO' : ' RPOs') : 'Submit All';
@@ -1698,19 +1695,6 @@
       beRows.splice(Number(e.target.closest('tr').getAttribute('data-i')), 1);
       renderBeList();
     });
-    document.getElementById('be_allDept').addEventListener('change', function () {
-      var val = this.value; if (!val) return;
-      beRows.forEach(function (r) { r.department = val; });
-      document.getElementById('be_department').value = val;
-      this.value = ''; renderBeList();
-    });
-    document.getElementById('be_allReason').addEventListener('change', function () {
-      var val = this.value; if (!val) return;
-      beRows.forEach(function (r) { r.reason = val; });
-      document.getElementById('be_reason').value = val;
-      this.value = ''; renderBeList();
-    });
-
     document.getElementById('be_cancelBtn').addEventListener('click', function () {
       if (!beRows.length) return;
       if (!confirm('Remove all ' + beRows.length + ' RPOs from the list?')) return;
