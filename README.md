@@ -29,3 +29,13 @@ Web app + Vercel API on Neon Postgres. The repo is only 10 files (fits the Verce
 
 ## Control Tower
 Point the card's pending-count URL to `https://<your-project>.vercel.app/api/pending-count`.
+
+## Goods Transfer Record (inter-outlet transfers)
+
+Sidebar group "GOODS TRANSFER": New Transfer, Pending Transfers (single + bulk update), Completed Transfers, Transfer Summary.
+
+One-time setup:
+1. Neon SQL Editor: run `transfers.sql` (tables `outlets` and `transfers`; outlets are seeded from the 4-digit store codes in `suppliers`).
+2. Vercel project > Storage > create a **Blob** store and connect it to the project (adds `BLOB_READ_WRITE_TOKEN`), then redeploy. Without it everything works except attachments.
+
+API: `GET/POST/PATCH /api/transfers`, `PUT/PATCH/DELETE /api/transfers/:id`, `POST /api/transfers/upload`.
