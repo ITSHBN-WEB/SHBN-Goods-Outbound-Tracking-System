@@ -4,7 +4,7 @@
 //                        totalCarton, rpoDate (yyyy-mm-dd), reason, remark, submittedBy} ] }
 const { route } = require('../../lib/core');
 const { query } = require('../../lib/core');
-const { parseEntries, parseBulkUpdate, resolveSupplierCodes } = require('../../lib/core');
+const { parseEntries, parseBulkUpdate, resolveSupplierCodes, assertRpoFree } = require('../../lib/core');
 const { RETURN_COLUMNS, pendingCount } = require('../../lib/core');
 
 module.exports = route(['GET', 'POST', 'PATCH'], async function (req) {
@@ -45,6 +45,7 @@ module.exports = route(['GET', 'POST', 'PATCH'], async function (req) {
   // POST: insert the whole batch in ONE statement, so it is all-or-nothing.
   const entries = parseEntries(req.body);
 
+  await assertRpoFree(entries.map((e) => e.rpoNo));
   await resolveSupplierCodes(entries);
 
   const params = [];
