@@ -1,6 +1,6 @@
 // POST /api/transfers/upload?filename=...&type=image/jpeg   (raw file as the request body)
 // Stores the picture / PDF in Vercel Blob and returns { url, name, type, size }; the page then sends that
-// url with the transfer update. Needs the BLOB_READ_WRITE_TOKEN env var (created when you add a Blob store).
+// url with the transfer update. Needs a connected Blob store: either BLOB_READ_WRITE_TOKEN (older stores) or BLOB_STORE_ID (newer stores, which sign in automatically).
 // Vercel limits a request body to 4.5 MB, so the page shrinks photos first and refuses larger files.
 const { route, HttpError } = require('../../lib/core');
 
@@ -24,8 +24,8 @@ async function readBody(req) {
 }
 
 module.exports = route(['POST'], async function (req) {
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    throw new HttpError(503, 'Attachments are not set up yet: add a Blob store to the Vercel project (Storage tab) so BLOB_READ_WRITE_TOKEN exists, then redeploy.');
+  if (!process.env.BLOB_READ_WRITE_TOKEN && !process.env.BLOB_STORE_ID) {
+    throw new HttpError(503, 'Attachments are not set up yet: add a Blob store to the Vercel project (Storage tab) so BLOB_STORE_ID (or BLOB_READ_WRITE_TOKEN) exists, then redeploy.');
   }
   const type = String((req.query && req.query.type) || '');
   if (!TYPES[type]) throw new HttpError(400, 'Only pictures (JPG, PNG, WEBP) and PDF files are allowed.');
