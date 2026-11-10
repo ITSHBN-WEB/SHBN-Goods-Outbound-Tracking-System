@@ -725,12 +725,11 @@
     /* printing from a dedicated root so the dark app chrome never reaches the paper */
     #tplPrintRoot { display:none; }
     /* Labels follow the Portrait / Landscape choice made in the browser print dialog:
-       portrait = 1 column, 5 labels per page; landscape = 2 columns x 3 rows, 6 labels per page. */
+       portrait = 1 column, 5 labels per page; landscape = 1 column, 4 labels per page. */
     #tplPrintRoot .tpl-flow .tpl-label { grid-auto-rows:28px; margin-bottom:10px; }
     @media print and (orientation: landscape) {
-      #tplPrintRoot .tpl-flow { display:grid; grid-template-columns:1fr 1fr; gap:10px 14px; align-content:start; }
-      #tplPrintRoot .tpl-flow .tpl-label { grid-auto-rows:32px; margin-bottom:0; }
-      #tplPrintRoot .tpl-flow .tpl-label:nth-child(6n) { break-after:page; page-break-after:always; }
+      #tplPrintRoot .tpl-flow .tpl-label { grid-auto-rows:26px; margin-bottom:8px; }
+      #tplPrintRoot .tpl-flow .tpl-label:nth-child(4n) { break-after:page; page-break-after:always; }
     }
     @media print and (orientation: portrait) {
       #tplPrintRoot .tpl-flow .tpl-label:nth-child(5n) { break-after:page; page-break-after:always; }
@@ -3074,7 +3073,7 @@
       trLabelBack = backFn;
       var total = Number(t.totalCarton) || 1;
       $id('tl_sheet').innerHTML = buildTplPages_(t);
-      $id('tl_note').textContent = 'Invoice / ODO ' + t.invoiceNo + ' - ' + total + ' label' + (total === 1 ? '' : 's') + ' (CTN 1/' + total + ' to ' + total + '/' + total + '). In the print window choose Portrait (5 labels per page) or Landscape (6 labels per page) - the layout adjusts automatically.';
+      $id('tl_note').textContent = 'Invoice / ODO ' + t.invoiceNo + ' - ' + total + ' label' + (total === 1 ? '' : 's') + ' (CTN 1/' + total + ' to ' + total + '/' + total + '). In the print window choose Portrait (5 labels per page) or Landscape (4 labels per page) - the layout adjusts automatically.';
       $id('tl_printBtn').onclick = function () { printRoot_(buildTplPages_(t), '@page{ size:auto; margin:10mm; }'); };
       showScreen('trLabelScreen'); window.scrollTo(0, 0);
     }
