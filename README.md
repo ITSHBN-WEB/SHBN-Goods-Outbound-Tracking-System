@@ -36,6 +36,6 @@ Sidebar group "GOODS TRANSFER": New Transfer, Pending Transfers (single + bulk u
 
 One-time setup:
 1. Neon SQL Editor: run `transfers.sql` (tables `outlets` and `transfers`; outlets are seeded from the 4-digit store codes in `suppliers`).
-2. Vercel project > Storage > create a **Blob** store and connect it to the project (adds `BLOB_READ_WRITE_TOKEN`), then redeploy. Without it everything works except attachments.
+2. Vercel project > Storage > create a **Blob** store and connect it to the project (adds `BLOB_STORE_ID`, or `BLOB_READ_WRITE_TOKEN` on older stores), then redeploy. Without it everything works except attachments.
 
 API: `GET/POST/PATCH /api/transfers`, `PUT/PATCH/DELETE /api/transfers/:id`, `POST /api/transfers/upload`.

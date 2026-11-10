@@ -188,7 +188,12 @@
 
 
     /* Dashboard refinement: pending shortcut + latest six records */
-    .dashboard-bottom-grid { display:grid; grid-template-columns:minmax(0,1fr); gap:16px; margin-top:24px; }
+    .dashboard-bottom-grid { display:grid; grid-template-columns:minmax(0,1fr); gap:16px; margin-top:24px; align-items:start; }
+    @media (min-width:1180px) { .dashboard-bottom-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+    .dash-sec { margin:0 0 10px; }
+    .recent-status.done { color:#75efc5; background:rgba(32,214,162,.10); border-color:rgba(32,214,162,.22); }
+    .recent-live-dot.tr { background:#a78bfa; box-shadow:0 0 12px rgba(167,139,250,.7); }
+    .recent-activity-icon.tr { color:#c4b5fd; background:rgba(167,139,250,.12); border-color:rgba(167,139,250,.2); }
     .view-pending-link {
       position:relative; z-index:1; display:inline-flex; align-items:center; gap:9px;
       margin-top:13px; padding:0; color:#67e8f9; background:transparent;
@@ -811,13 +816,14 @@
     <div id="homeScreen">
       <section class="dashboard-welcome">
         <div>
-          <div class="eyebrow">OVERVIEW / SUPPLIER RETURNS</div>
+          <div class="eyebrow">OVERVIEW</div>
           <h2 id="welcomeGreeting">Welcome back</h2>
-          <p>Here's what's happening with your supplier returns.</p>
+          <p>Here's what's happening with your supplier returns and goods transfers.</p>
         </div>
         <div class="welcome-date" id="welcomeDate"></div>
       </section>
 
+      <div class="section-kicker dash-sec">SUPPLIER RETURNS</div>
       <section class="dashboard-metrics">
         <div class="metric-card">
           <div class="metric-top"><span class="metric-icon">↻</span><span class="metric-label">PENDING SUPPLIER RETURNS</span></div>
@@ -833,6 +839,22 @@
         </div>
       </section>
 
+      <div class="section-kicker dash-sec">GOODS TRANSFER</div>
+      <section class="dashboard-metrics">
+        <div class="metric-card">
+          <div class="metric-top"><span class="metric-icon">⇄</span><span class="metric-label">PENDING INTER-OUTLET TRANSFERS</span></div>
+          <div class="metric-value" id="dashboardTrPendingCount">—</div>
+          <div class="metric-foot">Transfers awaiting DO No / pickup</div>
+          <button class="view-pending-link" type="button" id="dashboardViewTrPending">View pending transfers <span aria-hidden="true">→</span></button>
+        </div>
+        <div class="metric-card metric-card-accent">
+          <div class="metric-top"><span class="metric-icon">＋</span><span class="metric-label">QUICK ACTION</span></div>
+          <div class="metric-action-title">Record a goods transfer</div>
+          <div class="metric-foot">Log an invoice transfer and print its carton labels</div>
+          <button class="metric-action-button" type="button" id="dashboardNewTransfer">＋ New Goods Transfer</button>
+        </div>
+      </section>
+
       <div class="dashboard-bottom-grid">
         <section class="recent-activity-card">
           <div class="recent-heading">
@@ -845,6 +867,19 @@
           </div>
           <div id="recentActivityList" class="recent-activity-list">
             <div class="recent-empty">Loading recent activity...</div>
+          </div>
+        </section>
+        <section class="recent-activity-card">
+          <div class="recent-heading">
+            <div>
+              <div class="section-kicker">LATEST UPDATES</div>
+              <h3>Recent Goods Transfers</h3>
+              <p>Latest 6 submitted or completed transfers</p>
+            </div>
+            <span class="recent-live-dot tr" title="Latest available records"></span>
+          </div>
+          <div id="recentTransferList" class="recent-activity-list">
+            <div class="recent-empty">Loading recent transfers...</div>
           </div>
         </section>
       </div>
@@ -1786,6 +1821,7 @@
 
       renderPendingCount(data.pendingCount);
       loadRecentActivity();
+      loadDashTransfers_();
       startPendingCountPolling();
       loadSuppliers();
       loadOutlets();
@@ -1838,6 +1874,7 @@
             }
           }
           if (summaryRan && isVisible_('summaryScreen') && (changed || opts.force)) document.getElementById('sr_runBtn').click();
+          loadDashTransfers_(true);
           if (typeof refreshTransfers_ === 'function' && isTrScreenVisible_()) refreshTransfers_(opts.force).catch(function () {});
           stamp.classList.remove('err');
           stamp.textContent = 'Updated ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' · auto-refresh 30s';
@@ -1904,7 +1941,7 @@
        'trNewScreen', 'trResultScreen', 'trLabelScreen', 'trPendingScreen', 'trBulkReviewScreen', 'trDetailScreen', 'trCompletedScreen', 'trSummaryScreen'].forEach(function (s) {
         document.getElementById(s).style.display = (s === id) ? 'block' : 'none';
       });
-      if (id === 'homeScreen') setActiveNav('navDashboard');
+      if (id === 'homeScreen') { setActiveNav('navDashboard'); if (typeof loadDashTransfers_ === 'function') loadDashTransfers_(); }
       else if (id === 'newReturnScreen') setActiveNav('navNewReturn');
       else if (id === 'updateListScreen' || id === 'updateDetailScreen' || id === 'bulkReviewScreen') setActiveNav('navUpdateReturn');
       else if (id === 'summaryScreen') setActiveNav('navSummary');
@@ -1920,6 +1957,11 @@
     document.getElementById('navUpdateReturn').addEventListener('click', function () { showScreen('updateListScreen'); loadPendingList(); });
     document.getElementById('navSummary').addEventListener('click', function () { showScreen('summaryScreen'); });
     document.getElementById('dashboardNewReturn').addEventListener('click', function () { showScreen('newReturnScreen'); });
+    document.getElementById('dashboardNewTransfer').addEventListener('click', function () { trNav_('trNewScreen'); });
+    document.getElementById('dashboardViewTrPending').addEventListener('click', function () {
+      trNav_('trPendingScreen'); loadTrPending();
+      var search = document.getElementById('tp_search'); if (search) search.focus();
+    });
     document.getElementById('dashboardViewPending').addEventListener('click', function () {
       showScreen('updateListScreen');
       loadPendingList();
@@ -2122,6 +2164,37 @@
         });
     });
 
+
+    // ---------- dashboard: goods transfer card + recent transfers ----------
+    var dashTrSig = '';
+    function loadDashTransfers_(quiet) {
+      var wrap = document.getElementById('recentTransferList');
+      if (!wrap) return Promise.resolve();
+      return api_('GET', '/api/transfers?view=dashboard').then(function (d) {
+        var sig = JSON.stringify(d);
+        if (quiet === true && sig === dashTrSig) return;
+        dashTrSig = sig;
+        document.getElementById('dashboardTrPendingCount').textContent = Number(d.pendingCount || 0).toLocaleString();
+        renderRecentTransfers_(d.recent || []);
+      }).catch(function () {
+        if (!dashTrSig) wrap.innerHTML = '<div class="recent-empty">Recent transfers are temporarily unavailable (has transfers.sql been run?).</div>';
+      });
+    }
+    function renderRecentTransfers_(list) {
+      var wrap = document.getElementById('recentTransferList');
+      if (!list.length) { wrap.innerHTML = '<div class="recent-empty">No goods transfers recorded yet.</div>'; return; }
+      wrap.innerHTML = list.map(function (t) {
+        var done = t.status === 'COMPLETED';
+        var date = done ? (t.dateUpdated || t.dateSubmitted) : t.dateSubmitted;
+        return '<div class="recent-activity-item">' +
+          '<div class="recent-activity-icon tr">&#8644;</div>' +
+          '<div><div class="recent-activity-title">Goods transfer &middot; ' + escapeHtml(t.invoiceNo) + '</div>' +
+          '<div class="recent-activity-subtitle">' + escapeHtml(t.transferTo) + ' &middot; ' + escapeHtml(t.department) + ' &middot; ' + escapeHtml(t.totalCarton) + ' ctn' + (done && t.doNo ? ' &middot; DO ' + escapeHtml(t.doNo) : '') + '</div>' +
+          '<span class="recent-status' + (done ? ' done' : '') + '">' + (done ? 'COMPLETED' : 'PENDING') + '</span></div>' +
+          '<div class="recent-activity-date">' + escapeHtml(date || 'Date unavailable') + '</div>' +
+          '</div>';
+      }).join('');
+    }
 
     function loadRecentActivity() {
       var wrap = document.getElementById('recentActivityList');

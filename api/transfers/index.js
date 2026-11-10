@@ -1,4 +1,5 @@
 // GET   /api/transfers?view=outlets                       -> [{code, name}]  (Transfer To type-ahead)
+// GET   /api/transfers?view=dashboard                     -> { pendingCount, recent:[latest 6 transfers] }
 // GET   /api/transfers?status=PENDING|COMPLETED|ALL&q=&from=yyyy-mm-dd&to=yyyy-mm-dd&limit=
 // POST  /api/transfers   body { transferTo, outletCode, invoiceNo, department, transferDate, totalCarton, remark }
 // PATCH /api/transfers   body { ids:[...], doNo, pickupDate, updatedBy, attachment? }   (bulk complete)
@@ -16,6 +17,13 @@ module.exports = route(['GET', 'POST', 'PATCH'], async function (req) {
     const q = req.query || {};
     if (q.view === 'outlets') {
       return await query('SELECT code, name FROM outlets WHERE active ORDER BY name, code');
+    }
+    if (q.view === 'dashboard') {         // dashboard card: pending count + the 6 most recently submitted / completed transfers
+      const [count, recent] = await Promise.all([
+        transferPendingCount(),
+        query(`SELECT ${TRANSFER_COLUMNS} FROM transfers ORDER BY GREATEST(created_at, COALESCE(updated_at, created_at)) DESC, id DESC LIMIT 6`)
+      ]);
+      return { pendingCount: count, recent };
     }
     const status = String(q.status || 'PENDING').toUpperCase();
     if (['PENDING', 'COMPLETED', 'ALL'].indexOf(status) === -1) throw new HttpError(400, 'Invalid status.');
