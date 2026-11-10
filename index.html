@@ -715,18 +715,6 @@
     .ts-st-p { color:#ffd98a; } .ts-st-c { color:#75efc5; }
     /* carton label (TPL to Outlet) - same layout as the standalone label generator */
     .tpl-sheet { background:#fff; border-radius:10px; padding:18px; max-width:780px; margin:0 auto; }
-    .tpl-page { break-after:page; page-break-after:always; }
-    .tpl-page.tpl-portrait .tpl-label { grid-auto-rows:28px; }
-    .tpl-page.tpl-landscape { display:grid; grid-template-columns:1fr 1fr; gap:10px 14px; align-content:start; }
-    .tpl-page.tpl-landscape .tpl-label { grid-auto-rows:32px; margin-bottom:0; }
-    .tpl-sheet.is-landscape { max-width:1000px; }
-    .tpl-sheet .tpl-page + .tpl-page { margin-top:18px; padding-top:18px; border-top:2px dashed #b8c0cc; }
-    #tplPrintRoot .tpl-page + .tpl-page { margin-top:0; padding-top:0; border-top:0; }
-    .tpl-orient { display:inline-flex; flex:0 0 auto; gap:0; margin-left:auto; }
-    .tpl-orient button { border:1px solid var(--border,#3a4150); background:transparent; color:inherit; padding:0 14px; height:40px; font-family:inherit; font-size:13px; font-weight:700; white-space:nowrap; cursor:pointer; }
-    .tpl-orient button:first-child { border-radius:8px 0 0 8px; } .tpl-orient button:last-child { border-radius:0 8px 8px 0; border-left:0; }
-    .tpl-orient button.on { background:#2dd4a7; color:#06241b; border-color:#2dd4a7; }
-    .tpl-page:last-child { break-after:auto; page-break-after:auto; }
     .tpl-label { display:grid; grid-template-columns:16% 31.5% 11.8% 23.6% 17.1%; grid-auto-rows:26px; border:2px solid #000; margin-bottom:10px; font-family:Arial,Helvetica,sans-serif; background:#fff; color:#000; page-break-inside:avoid; break-inside:avoid; }
     .tpl-label .tc { border:1px solid #000; display:flex; align-items:center; padding:0 6px; font-size:11.5px; font-weight:700; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
     .tpl-label .company { grid-column:1 / 5; justify-content:center; text-align:center; font-size:13px; }
@@ -736,6 +724,18 @@
     .tpl-label .val.left { justify-content:flex-start; text-align:left; }
     /* printing from a dedicated root so the dark app chrome never reaches the paper */
     #tplPrintRoot { display:none; }
+    /* Labels follow the Portrait / Landscape choice made in the browser print dialog:
+       portrait = 1 column, 5 labels per page; landscape = 2 columns x 3 rows, 6 labels per page. */
+    #tplPrintRoot .tpl-flow .tpl-label { grid-auto-rows:28px; margin-bottom:10px; }
+    @media print and (orientation: landscape) {
+      #tplPrintRoot .tpl-flow { display:grid; grid-template-columns:1fr 1fr; gap:10px 14px; align-content:start; }
+      #tplPrintRoot .tpl-flow .tpl-label { grid-auto-rows:32px; margin-bottom:0; }
+      #tplPrintRoot .tpl-flow .tpl-label:nth-child(6n) { break-after:page; page-break-after:always; }
+    }
+    @media print and (orientation: portrait) {
+      #tplPrintRoot .tpl-flow .tpl-label:nth-child(5n) { break-after:page; page-break-after:always; }
+    }
+    #tplPrintRoot .tpl-flow .tpl-label:last-child { break-after:auto !important; page-break-after:auto !important; }
     #tplPrintRoot .ts-table th, #tplPrintRoot .ts-table td { color:#000; border-bottom:1px solid #999; font-size:10.5px; padding:4px 5px; }
     #tplPrintRoot .ts-table th { color:#000; }
     #tplPrintRoot h1 { font:700 16px Arial,sans-serif; margin:0 0 4px; color:#000; }
@@ -1075,10 +1075,7 @@
         <p class="bk-help" id="tl_note"></p>
         <div class="btn-row" style="margin:0 0 16px;">
           <button class="btn-primary" id="tl_printBtn" type="button">&#128424; Print</button>
-          <div class="tpl-orient" role="group" aria-label="Paper orientation">
-            <button type="button" id="tl_orPortrait">&#9647; Portrait</button>
-            <button type="button" id="tl_orLandscape">&#9645; Landscape</button>
-          </div>
+        </div>
         </div>
         <div class="tpl-sheet" id="tl_sheet"></div>
       </div>
@@ -3069,38 +3066,17 @@
         '<div class="tc lbl">REMARK</div><div class="tc val" style="grid-column:2 / 5;">' + escapeHtml(t.remark || '') + '</div>' +
         '</div>';
     }
-    var tplOrient = 'portrait';
-    try { if (localStorage.getItem('gots_tpl_orient') === 'landscape') tplOrient = 'landscape'; } catch (e) {}
-    function tplPerPage_(o) { return o === 'landscape' ? 6 : 5; }          // A4 portrait: 5 x 1 column; A4 landscape: 3 rows x 2 columns
-    function buildTplPages_(t, orient) {
-      orient = orient || tplOrient;
-      var total = Number(t.totalCarton) || 1, per = tplPerPage_(orient), html = '';
-      for (var i = 1; i <= total; i++) {
-        if ((i - 1) % per === 0) { if (i !== 1) html += '</div>'; html += '<div class="tpl-page tpl-' + orient + '">'; }
-        html += buildTplLabel_(t, i, total);
-      }
+    function buildTplPages_(t) {
+      var total = Number(t.totalCarton) || 1, html = '<div class="tpl-flow">';
+      for (var i = 1; i <= total; i++) html += buildTplLabel_(t, i, total);
       return html + '</div>';
     }
-    var tplCurrent = null;
-    function paintLabelScreen_() {
-      var t = tplCurrent; if (!t) return;
-      var total = Number(t.totalCarton) || 1, per = tplPerPage_(tplOrient), pages = Math.ceil(total / per);
-      $id('tl_sheet').innerHTML = buildTplPages_(t);
-      $id('tl_sheet').classList.toggle('is-landscape', tplOrient === 'landscape');
-      $id('tl_orPortrait').classList.toggle('on', tplOrient === 'portrait');
-      $id('tl_orLandscape').classList.toggle('on', tplOrient === 'landscape');
-      $id('tl_note').textContent = 'Invoice / ODO ' + t.invoiceNo + ' - ' + total + ' label' + (total === 1 ? '' : 's') + ' (CTN 1/' + total + ' to ' + total + '/' + total + ') on ' + pages + ' A4 ' + tplOrient + ' page' + (pages === 1 ? '' : 's') + ', ' + per + ' per page.';
-    }
-    function setTplOrient_(o) {
-      tplOrient = o; try { localStorage.setItem('gots_tpl_orient', o); } catch (e) {}
-      paintLabelScreen_();
-    }
-    $id('tl_orPortrait').addEventListener('click', function () { setTplOrient_('portrait'); });
-    $id('tl_orLandscape').addEventListener('click', function () { setTplOrient_('landscape'); });
     function openLabelScreen_(t, backFn) {
-      trLabelBack = backFn; tplCurrent = t;
-      paintLabelScreen_();
-      $id('tl_printBtn').onclick = function () { printRoot_(buildTplPages_(tplCurrent), '@page{ size:A4 ' + tplOrient + '; margin:10mm; }'); };
+      trLabelBack = backFn;
+      var total = Number(t.totalCarton) || 1;
+      $id('tl_sheet').innerHTML = buildTplPages_(t);
+      $id('tl_note').textContent = 'Invoice / ODO ' + t.invoiceNo + ' - ' + total + ' label' + (total === 1 ? '' : 's') + ' (CTN 1/' + total + ' to ' + total + '/' + total + '). In the print window choose Portrait (5 labels per page) or Landscape (6 labels per page) - the layout adjusts automatically.';
+      $id('tl_printBtn').onclick = function () { printRoot_(buildTplPages_(t), '@page{ size:auto; margin:10mm; }'); };
       showScreen('trLabelScreen'); window.scrollTo(0, 0);
     }
     $id('tl_back').addEventListener('click', function () { if (trLabelBack) trLabelBack(); else showScreen('homeScreen'); });
