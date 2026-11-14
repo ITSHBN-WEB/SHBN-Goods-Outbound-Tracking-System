@@ -698,6 +698,15 @@
     .td-grid .it b { color:#eef4ff; font-size:15.5px; font-weight:700; overflow-wrap:anywhere; }
     .td-grid .it.wide { grid-column:1 / -1; }
     .done-badge { color:#75efc5; background:rgba(32,214,162,.12); border:1px solid rgba(32,214,162,.28); }
+    .wait-badge, .recent-status.wait { color:#9bd8ff; background:rgba(56,189,248,.12); border:1px solid rgba(56,189,248,.28); }
+    .dashboard-metrics.three { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    @media (min-width:1100px) { .dashboard-metrics.three { grid-template-columns:repeat(3,minmax(0,1fr)); } }
+    @media (max-width:760px) { .dashboard-metrics.three { grid-template-columns:1fr; } }
+    .att-list { display:grid; gap:8px; margin:0 0 14px; }
+    .att-item { display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px solid rgba(148,163,184,.18); border-radius:10px; background:#111a27; }
+    .att-item a { flex:1; min-width:0; color:#22d3ee; font-size:14px; overflow-wrap:anywhere; }
+    .att-item .att-x { flex:0 0 auto; padding:5px 12px; font-size:12.5px; color:#ff9aaf; background:rgba(239,71,111,.1); border:1px solid rgba(239,71,111,.3); border-radius:7px; }
+    .att-empty { color:#8393aa; font-size:13.5px; margin:0 0 14px; }
     .att-box { margin:0 0 14px; }
     .att-box > label { color:#b7c4d8; font-size:13.5px; font-weight:500; }
     .att-box > label { display:block; margin-bottom:6px; }
@@ -719,7 +728,7 @@
     .ts-table td { padding:9px 8px; color:#e8edf7; border-bottom:1px solid rgba(148,163,184,.12); vertical-align:top; }
     .ts-table td a { color:#22d3ee; }
     .ts-table .num { text-align:right; }
-    .ts-st-p { color:#ffd98a; } .ts-st-c { color:#75efc5; }
+    .ts-st-w { color:#8fd3ff; } .ts-st-p { color:#ffd98a; } .ts-st-c { color:#75efc5; }
     /* carton label (TPL to Outlet) - same layout as the standalone label generator */
     .tpl-sheet { background:#fff; border-radius:10px; padding:18px; max-width:780px; margin:0 auto; }
     .tpl-label { display:grid; grid-template-columns:16% 31.5% 11.8% 23.6% 17.1%; grid-auto-rows:26px; border:2px solid #000; margin-bottom:10px; font-family:Arial,Helvetica,sans-serif; background:#fff; color:#000; page-break-inside:avoid; break-inside:avoid; }
@@ -865,6 +874,7 @@
       <div class="side-group">GOODS TRANSFER</div><div class="side-group-gap" style="display:none;"></div>
       <button type="button" class="side-link" id="navTrNew"><span class="nav-icon">⊕</span><span>New Transfer</span></button>
       <button type="button" class="side-link" id="navTrPending"><span class="nav-icon">⇄</span><span>Pending Transfers</span></button>
+      <button type="button" class="side-link" id="navTrAwait"><span class="nav-icon">⌛</span><span>Awaiting Copy-Document</span></button>
       <button type="button" class="side-link" id="navTrCompleted"><span class="nav-icon">✓</span><span>Completed Transfers</span></button>
       <button type="button" class="side-link" id="navTrSummary"><span class="nav-icon">≣</span><span>Transfer Summary</span></button>
     </nav>
@@ -919,12 +929,18 @@
       </section>
 
       <div class="section-kicker dash-sec">GOODS TRANSFER</div>
-      <section class="dashboard-metrics">
+      <section class="dashboard-metrics three">
         <div class="metric-card">
           <div class="metric-top"><span class="metric-icon">⇄</span><span class="metric-label">PENDING INTER-OUTLET TRANSFERS</span></div>
           <div class="metric-value" id="dashboardTrPendingCount">—</div>
           <div class="metric-foot">Transfers awaiting DO No / pickup</div>
           <button class="view-pending-link" type="button" id="dashboardViewTrPending">View pending transfers <span aria-hidden="true">→</span></button>
+        </div>
+        <div class="metric-card">
+          <div class="metric-top"><span class="metric-icon">⌛</span><span class="metric-label">AWAITING COPY-DOCUMENT</span></div>
+          <div class="metric-value" id="dashboardTrAwaitCount">—</div>
+          <div class="metric-foot">Picked up, copy-document not yet returned</div>
+          <button class="view-pending-link" type="button" id="dashboardViewTrAwait">View awaiting copy-document <span aria-hidden="true">→</span></button>
         </div>
         <div class="metric-card metric-card-accent">
           <div class="metric-top"><span class="metric-icon">＋</span><span class="metric-label">QUICK ACTION</span></div>
@@ -953,7 +969,7 @@
             <div>
               <div class="section-kicker">LATEST UPDATES</div>
               <h3>Recent Goods Transfers</h3>
-              <p>Latest 6 submitted or completed transfers</p>
+              <p>Latest 6 transfers, newest activity first</p>
             </div>
             <span class="recent-live-dot tr" title="Latest available records"></span>
           </div>
@@ -1253,7 +1269,7 @@
         <div id="tbr_list"></div>
       </div>
       <div class="card">
-        <h2>Completion Details <span style="font-weight:500;color:#91a2ba;font-size:13px;">(applies to all)</span></h2>
+        <h2>DO No &amp; Pickup Details <span style="font-weight:500;color:#91a2ba;font-size:13px;">(applies to all - they move to Awaiting Copy-Document)</span></h2>
         <div class="row2">
           <div class="field"><label>DO No</label><input type="text" id="tbr_doNo" placeholder="DO number" autocomplete="off"></div>
           <div class="field"><label>Pickup Date</label><input type="date" id="tbr_pickup"></div>
@@ -1264,12 +1280,88 @@
         <div class="progress" id="tbr_progress"><i></i></div>
         <div class="btn-row">
           <button class="btn-secondary" id="tbr_backBtn" type="button">Back</button>
-          <button class="btn-success" id="tbr_submitBtn" type="button">Complete</button>
+          <button class="btn-success" id="tbr_submitBtn" type="button">Update</button>
         </div>
       </div>
     </div>
 
-    <!-- ============ GOODS TRANSFER: DETAIL (pending or completed) ============ -->
+    <!-- ============ GOODS TRANSFER: AWAITING COPY-DOCUMENT ============ -->
+    <div id="trAwaitScreen" style="display:none;">
+      <span class="back-link" id="aw_back">&larr; Back</span>
+      <div class="seg" role="tablist" aria-label="Update mode">
+        <button type="button" class="seg-btn active" id="awModeSingle" role="tab">Update One</button>
+        <button type="button" class="seg-btn" id="awModeBulk" role="tab">Bulk Update</button>
+      </div>
+
+      <div id="awSingle">
+        <div class="card">
+          <h2>Search Awaiting Copy-Document</h2>
+          <div class="search-row"><input type="text" id="aw_search" placeholder="Invoice / ODO No, DO No, outlet or department" autocomplete="off"></div>
+        </div>
+        <div class="card">
+          <h2>Awaiting Copy-Document (<span id="aw_count">0</span>)</h2>
+          <p class="bk-help" style="margin-top:0;">Picked up already - waiting for the signed copy-document to come back. Longest waiting first.</p>
+          <div id="aw_list"></div>
+          <div class="list-empty" id="aw_empty" style="display:none;">Nothing is waiting for a copy-document.</div>
+        </div>
+      </div>
+
+      <div id="awBulk" style="display:none;">
+        <div class="card">
+          <h2>Bulk Update</h2>
+          <p class="bk-help">Search an Invoice / ODO No, tick it, press Clear, then search the next one. Everything you tick stays selected.</p>
+          <div class="field" style="margin-bottom:10px;"><input type="text" id="ab_search" placeholder="Search Invoice / ODO No" autocomplete="off"></div>
+          <button type="button" class="btn-secondary bk-small" id="ab_clearSearch">Clear</button>
+        </div>
+        <div class="card">
+          <div class="bk-toolbar">
+            <h2 style="border:0;margin:0;padding:0;">Awaiting (<span id="ab_shown">0</span>)</h2>
+            <div class="bk-toolbar-btns">
+              <button type="button" class="btn-secondary bk-small" id="ab_tickAll">Tick all shown</button>
+              <button type="button" class="btn-secondary bk-small" id="ab_untickAll">Untick all shown</button>
+            </div>
+          </div>
+          <div id="ab_list"></div>
+          <div class="list-empty" id="ab_empty" style="display:none;">Nothing is waiting for a copy-document.</div>
+        </div>
+        <div class="card" id="ab_selCard" style="display:none;">
+          <div class="bk-toolbar">
+            <h2 style="border:0;margin:0;padding:0;">Selected (<span id="ab_selN">0</span>)</h2>
+            <button type="button" class="btn-secondary bk-small" id="ab_clearSel">Clear selection</button>
+          </div>
+          <div id="ab_chips" class="bk-quick" style="margin-top:0;"></div>
+        </div>
+        <div class="bk-bar" id="ab_bar" style="display:none;">
+          <span id="ab_barCount">0 selected</span>
+          <button type="button" class="btn-primary" id="ab_continueBtn" disabled>Continue</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ GOODS TRANSFER: AWAITING COPY-DOCUMENT - BULK REVIEW ============ -->
+    <div id="trAwaitBulkReviewScreen" style="display:none;">
+      <span class="back-link" id="abr_back">&larr; Back to selection</span>
+      <div class="card">
+        <h2>Review (<span id="abr_count">0</span> transfers)</h2>
+        <div id="abr_list"></div>
+      </div>
+      <div class="card">
+        <h2>Returned Copy-Document <span style="font-weight:500;color:#91a2ba;font-size:13px;">(applies to all - they move to Completed)</span></h2>
+        <div class="row2">
+          <div class="field"><label>Returned Copy-Document Date</label><input type="date" id="abr_date"></div>
+          <div class="field"><label>Submitted By</label><input type="text" id="abr_by" placeholder="Enter your name" autocomplete="off"></div>
+        </div>
+        <div id="abr_attach"></div>
+        <div id="abr_status"></div>
+        <div class="progress" id="abr_progress"><i></i></div>
+        <div class="btn-row">
+          <button class="btn-secondary" id="abr_backBtn" type="button">Back</button>
+          <button class="btn-success" id="abr_submitBtn" type="button">Complete</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ GOODS TRANSFER: DETAIL (pending, awaiting copy-document or completed) ============ -->
     <div id="trDetailScreen" style="display:none;">
       <span class="back-link" id="td_back">&larr; Back</span>
       <div class="card">
@@ -1284,19 +1376,45 @@
           <button class="btn-danger" id="td_deleteBtn" type="button">Delete</button>
         </div>
       </div>
-      <div class="card">
-        <h2 id="td_formTitle">Complete this Transfer</h2>
+
+      <div class="card" id="td_attCard">
+        <h2>Attachments (<span id="td_attN">0</span>)</h2>
+        <div id="td_attList"></div>
+        <div class="att-box">
+          <label>Add attachment <span style="font-weight:400;opacity:.7;">(pictures or PDFs, max 4 MB each, up to 10 per transfer)</span></label>
+          <div class="att-row"><input type="file" id="td_attFile" accept="image/*,application/pdf" multiple></div>
+          <div class="att-info" id="td_attInfo"></div>
+        </div>
+      </div>
+
+      <div class="card" id="td_doCard">
+        <h2 id="td_formTitle">Update DO No &amp; Pickup Date</h2>
+        <p class="bk-help" id="td_formHelp" style="margin-top:0;"></p>
         <div class="row2">
           <div class="field"><label>DO No</label><input type="text" id="td_doNo" placeholder="DO number" autocomplete="off"></div>
           <div class="field"><label>Pickup Date</label><input type="date" id="td_pickup"></div>
         </div>
         <div class="field"><label>Updated By</label><input type="text" id="td_updatedBy" placeholder="Enter your name" autocomplete="off"></div>
-        <div id="td_attach"></div>
         <div id="td_status"></div>
         <div class="progress" id="td_progress"><i></i></div>
         <div class="btn-row">
-          <button class="btn-secondary" id="td_undoBtn" type="button" style="display:none;">Undo (back to Pending)</button>
-          <button class="btn-success" id="td_saveBtn" type="button">Complete</button>
+          <button class="btn-secondary" id="td_undoBtn" type="button" style="display:none;">Back to Pending</button>
+          <button class="btn-success" id="td_saveBtn" type="button">Update</button>
+        </div>
+      </div>
+
+      <div class="card" id="td_copyCard" style="display:none;">
+        <h2 id="td_copyTitle">Returned Copy-Document</h2>
+        <p class="bk-help" id="td_copyHelp" style="margin-top:0;"></p>
+        <div class="row2">
+          <div class="field"><label>Returned Copy-Document Date</label><input type="date" id="td_copyDate"></div>
+          <div class="field"><label>Submitted By</label><input type="text" id="td_copyBy" placeholder="Enter your name" autocomplete="off"></div>
+        </div>
+        <div id="td_cstatus"></div>
+        <div class="progress" id="td_cprogress"><i></i></div>
+        <div class="btn-row">
+          <button class="btn-secondary" id="td_undoCopyBtn" type="button" style="display:none;">Back to Awaiting Copy-Document</button>
+          <button class="btn-success" id="td_copySaveBtn" type="button">Complete Transfer</button>
         </div>
       </div>
     </div>
@@ -1328,7 +1446,7 @@
         <div class="row2">
           <div class="field" id="ts_monthWrap"><label>Month</label><input type="month" id="ts_month"></div>
           <div class="field" id="ts_statusWrap"><label>Show</label>
-            <select id="ts_status"><option value="ALL">Pending &amp; Completed</option><option value="PENDING">Pending only</option><option value="COMPLETED">Completed only</option></select>
+            <select id="ts_status"><option value="ALL">All (Pending, Awaiting &amp; Completed)</option><option value="PENDING">Pending only</option><option value="AWAITING_COPY">Awaiting Copy-Document only</option><option value="COMPLETED">Completed only</option></select>
           </div>
         </div>
         <div class="row2" id="ts_rangeWrap" style="display:none;">
@@ -2009,7 +2127,7 @@
 
     // ---------- Navigation ----------
     function setActiveNav(id) {
-      ['navDashboard', 'navNewReturn', 'navUpdateReturn', 'navSummary', 'navTrNew', 'navTrPending', 'navTrCompleted', 'navTrSummary'].forEach(function (navId) {
+      ['navDashboard', 'navNewReturn', 'navUpdateReturn', 'navSummary', 'navTrNew', 'navTrPending', 'navTrAwait', 'navTrCompleted', 'navTrSummary'].forEach(function (navId) {
         var el = document.getElementById(navId);
         if (el) el.classList.toggle('active', navId === id);
       });
@@ -2019,7 +2137,7 @@
 
     function showScreen(id) {
       ['homeScreen', 'newReturnScreen', 'updateListScreen', 'updateDetailScreen', 'bulkReviewScreen', 'summaryScreen',
-       'trNewScreen', 'trResultScreen', 'trLabelScreen', 'trPendingScreen', 'trBulkReviewScreen', 'trDetailScreen', 'trCompletedScreen', 'trSummaryScreen'].forEach(function (s) {
+       'trNewScreen', 'trResultScreen', 'trLabelScreen', 'trPendingScreen', 'trBulkReviewScreen', 'trAwaitScreen', 'trAwaitBulkReviewScreen', 'trDetailScreen', 'trCompletedScreen', 'trSummaryScreen'].forEach(function (s) {
         document.getElementById(s).style.display = (s === id) ? 'block' : 'none';
       });
       if (id === 'homeScreen') { setActiveNav('navDashboard'); if (typeof loadDashTransfers_ === 'function') loadDashTransfers_(); }
@@ -2028,6 +2146,7 @@
       else if (id === 'summaryScreen') setActiveNav('navSummary');
       else if (id === 'trNewScreen' || id === 'trResultScreen') setActiveNav('navTrNew');
       else if (id === 'trPendingScreen' || id === 'trBulkReviewScreen' || id === 'trDetailScreen') setActiveNav('navTrPending');
+      else if (id === 'trAwaitScreen' || id === 'trAwaitBulkReviewScreen') setActiveNav('navTrAwait');
       else if (id === 'trCompletedScreen') setActiveNav('navTrCompleted');
       else if (id === 'trSummaryScreen') setActiveNav('navTrSummary');
       showStatus('statusBanner', '', '');
@@ -2042,6 +2161,10 @@
     document.getElementById('dashboardViewTrPending').addEventListener('click', function () {
       trNav_('trPendingScreen'); loadTrPending();
       var search = document.getElementById('tp_search'); if (search) search.focus();
+    });
+    document.getElementById('dashboardViewTrAwait').addEventListener('click', function () {
+      trNav_('trAwaitScreen'); loadTrAwait();
+      var search = document.getElementById('aw_search'); if (search) search.focus();
     });
     document.getElementById('dashboardViewPending').addEventListener('click', function () {
       showScreen('updateListScreen');
@@ -2256,6 +2379,7 @@
         if (quiet === true && sig === dashTrSig) return;
         dashTrSig = sig;
         document.getElementById('dashboardTrPendingCount').textContent = Number(d.pendingCount || 0).toLocaleString();
+        document.getElementById('dashboardTrAwaitCount').textContent = Number(d.awaitingCount || 0).toLocaleString();
         renderRecentTransfers_(d.recent || []);
       }).catch(function () {
         if (!dashTrSig) wrap.innerHTML = '<div class="recent-empty">Recent transfers are temporarily unavailable (has transfers.sql been run?).</div>';
@@ -2265,13 +2389,13 @@
       var wrap = document.getElementById('recentTransferList');
       if (!list.length) { wrap.innerHTML = '<div class="recent-empty">No goods transfers recorded yet.</div>'; return; }
       wrap.innerHTML = list.map(function (t) {
-        var done = t.status === 'COMPLETED';
-        var date = done ? (t.dateUpdated || t.dateSubmitted) : t.dateSubmitted;
+        var done = t.status === 'COMPLETED', wait = t.status === 'AWAITING_COPY';
+        var date = done ? (t.dateCopyUpdated || t.dateUpdated || t.dateSubmitted) : wait ? (t.dateUpdated || t.dateSubmitted) : t.dateSubmitted;
         return '<div class="recent-activity-item">' +
           '<div class="recent-activity-icon tr">&#8644;</div>' +
           '<div><div class="recent-activity-title">Goods transfer &middot; ' + escapeHtml(t.invoiceNo) + '</div>' +
-          '<div class="recent-activity-subtitle">' + escapeHtml(t.transferTo) + ' &middot; ' + escapeHtml(t.department) + ' &middot; ' + escapeHtml(t.totalCarton) + ' ctn' + (done && t.doNo ? ' &middot; DO ' + escapeHtml(t.doNo) : '') + '</div>' +
-          '<span class="recent-status' + (done ? ' done' : '') + '">' + (done ? 'COMPLETED' : 'PENDING') + '</span></div>' +
+          '<div class="recent-activity-subtitle">' + escapeHtml(t.transferTo) + ' &middot; ' + escapeHtml(t.department) + ' &middot; ' + escapeHtml(t.totalCarton) + ' ctn' + (t.doNo ? ' &middot; DO ' + escapeHtml(t.doNo) : '') + '</div>' +
+          '<span class="recent-status' + (done ? ' done' : wait ? ' wait' : '') + '">' + (done ? 'COMPLETED' : wait ? 'AWAITING COPY-DOCUMENT' : 'PENDING') + '</span></div>' +
           '<div class="recent-activity-date">' + escapeHtml(date || 'Date unavailable') + '</div>' +
           '</div>';
       }).join('');
@@ -3095,10 +3219,11 @@
     var TPL_FROM = 'SHBN';
     var MAX_UPLOAD_BYTES = 4 * 1024 * 1024;     // Vercel request limit is 4.5 MB
     var outlets = [];                           // [{code, name, hay, rank}]
-    var trPending = [], trCompleted = [], trCurrent = null, trLast = null;
-    var trLabelBack = null, tbSel = {}, tbReview = [], tsRows = [];
-    var trSigs = { pending: '', completed: '' };
-    var TR_SCREENS = ['trNewScreen', 'trResultScreen', 'trLabelScreen', 'trPendingScreen', 'trBulkReviewScreen', 'trDetailScreen', 'trCompletedScreen', 'trSummaryScreen'];
+    var trPending = [], trAwaiting = [], trCompleted = [], trCurrent = null, trLast = null;
+    var trLabelBack = null, tbSel = {}, tbReview = [], abSel = {}, abReview = [], tsRows = [];
+    var trSigs = { pending: '', awaiting: '', completed: '' };
+    var MAX_ATTACH_TOTAL = 10, MAX_ATTACH_BATCH = 5;
+    var TR_SCREENS = ['trNewScreen', 'trResultScreen', 'trLabelScreen', 'trPendingScreen', 'trBulkReviewScreen', 'trAwaitScreen', 'trAwaitBulkReviewScreen', 'trDetailScreen', 'trCompletedScreen', 'trSummaryScreen'];
 
     function loadOutlets() {
       api_('GET', '/api/transfers?view=outlets')
@@ -3175,50 +3300,48 @@
           });
         });
     }
-    // Mounts "Attachment (optional)" into a container. resolve() -> Promise of: undefined (leave as is), null (remove) or {url,name,type}.
+    // Mounts "Attachments (optional)" into a container: pick up to 5 pictures / PDFs. resolve() -> Promise of an array of {url,name,type} ([] when none).
     function mountAttach_(containerId, prefix) {
       var box = $id(containerId);
       box.className = 'att-box';
-      box.innerHTML = '<label>Attachment <span style="font-weight:400;opacity:.7;">(optional - picture or PDF, max 4 MB)</span></label>' +
-        '<div class="att-row"><input type="file" id="' + prefix + '_file" accept="image/*,application/pdf"></div>' +
+      box.innerHTML = '<label>Attachments <span style="font-weight:400;opacity:.7;">(optional - pictures or PDFs, max 4 MB each, up to ' + MAX_ATTACH_BATCH + ')</span></label>' +
+        '<div class="att-row"><input type="file" id="' + prefix + '_file" accept="image/*,application/pdf" multiple></div>' +
         '<div class="att-info" id="' + prefix + '_info"></div>';
-      var input = $id(prefix + '_file'), info = $id(prefix + '_info');
-      var st = { picked: null, existing: null, removed: false };
+      var input = $id(prefix + '_file'), info = $id(prefix + '_info'), picked = [], note = '';
       function paint() {
-        info.className = 'att-info'; info.innerHTML = '';
-        if (st.picked) {
-          info.innerHTML = 'Selected: ' + escapeHtml(st.picked.name) + ' (' + Math.max(1, Math.round(st.picked.blob.size / 1024)) + ' KB) <button type="button" data-a="drop">Remove</button>';
-        } else if (st.existing && !st.removed) {
-          info.innerHTML = 'Attached: <a href="' + escapeHtml(st.existing.url) + '" target="_blank" rel="noopener">' + escapeHtml(st.existing.name) + '</a> <button type="button" data-a="remove">Remove</button>';
-        } else if (st.existing && st.removed) {
-          info.innerHTML = 'Attachment will be removed when you save. <button type="button" data-a="keep">Keep it</button>';
-        }
+        info.className = 'att-info' + (note ? ' err' : '');
+        info.innerHTML = note ? escapeHtml(note) : picked.map(function (a, i) {
+          return '<div>Selected: ' + escapeHtml(a.name) + ' (' + Math.max(1, Math.round(a.blob.size / 1024)) + ' KB) <button type="button" data-i="' + i + '">Remove</button></div>';
+        }).join('');
       }
       input.addEventListener('change', function () {
-        var f = input.files && input.files[0]; if (!f) return;
+        var files = Array.prototype.slice.call(input.files || []); input.value = '';
+        if (!files.length) return;
+        note = '';
+        if (picked.length + files.length > MAX_ATTACH_BATCH) { note = 'You can attach up to ' + MAX_ATTACH_BATCH + ' files at a time.'; files = files.slice(0, Math.max(0, MAX_ATTACH_BATCH - picked.length)); }
         info.className = 'att-info'; info.textContent = 'Preparing...';
-        prepareAttachment_(f).then(function (a) { st.picked = a; st.removed = false; paint(); })
-          .catch(function (e) { st.picked = null; input.value = ''; paint(); info.className = 'att-info err'; info.textContent = e.message; });
+        files.reduce(function (p, f) {
+          return p.then(function () {
+            return prepareAttachment_(f).then(function (a) { picked.push(a); }).catch(function (e) { note = e.message; });
+          });
+        }, Promise.resolve()).then(paint);
       });
       info.addEventListener('click', function (e) {
-        var a = e.target.getAttribute && e.target.getAttribute('data-a'); if (!a) return;
-        if (a === 'drop') { st.picked = null; input.value = ''; }
-        if (a === 'remove') st.removed = true;
-        if (a === 'keep') st.removed = false;
-        paint();
+        var i = e.target.getAttribute && e.target.getAttribute('data-i'); if (i === null || i === undefined) return;
+        picked.splice(Number(i), 1); note = ''; paint();
       });
       return {
-        reset: function (existing) { st = { picked: null, existing: existing || null, removed: false }; input.value = ''; paint(); },
+        reset: function () { picked = []; note = ''; input.value = ''; paint(); },
+        hasFile: function () { return picked.length > 0; },
         resolve: function () {
-          if (st.picked) return uploadAttachment_(st.picked);
-          if (st.existing && st.removed) return Promise.resolve(null);
-          return Promise.resolve(undefined);
-        },
-        hasFile: function () { return !!st.picked; }
+          return picked.reduce(function (p, a) {
+            return p.then(function (done) { return uploadAttachment_(a).then(function (u) { done.push(u); return done; }); });
+          }, Promise.resolve([]));
+        }
       };
     }
-    var tdAttach = mountAttach_('td_attach', 'td');
     var tbrAttach = mountAttach_('tbr_attach', 'tbr');
+    var abrAttach = mountAttach_('abr_attach', 'abr');
 
     // ---------- label (TPL to Outlet) ----------
     function buildTplLabel_(t, index, total) {
@@ -3342,6 +3465,15 @@
         renderTrPending(); tbRender(); refreshDeptList_();
       });
     }
+    function loadTrAwait() {
+      return api_('GET', '/api/transfers?status=AWAITING_COPY').then(function (list) {
+        trSigs.awaiting = JSON.stringify(list);
+        trAwaiting = list;
+        var ids = {}; list.forEach(function (x) { ids[x.id] = true; });
+        Object.keys(abSel).forEach(function (id) { if (!ids[id]) delete abSel[id]; });
+        renderTrAwait(); abRender();
+      });
+    }
     function loadTrCompleted() {
       var q = $id('tc_search').value.trim();
       return api_('GET', '/api/transfers?status=COMPLETED' + (q ? '&q=' + encodeURIComponent(q) : '')).then(function (list) {
@@ -3350,14 +3482,26 @@
       });
     }
 
+    function attCount_(t) { return (t.attachments && t.attachments.length) || 0; }
+    // opts.kind: 'await' | 'done' (default = pending)
     function trItemHtml_(t, opts) {
+      var kind = (opts && opts.kind) || 'pending', clip = attCount_(t) ? ' &middot; &#128206;' + attCount_(t) : '';
+      var meta = trLine_(t), badge, cls = '';
+      if (kind === 'await') {
+        meta += ' &middot; DO ' + escapeHtml(t.doNo || '') + (t.pickupDate ? ' &middot; picked up ' + escapeHtml(fmtDateLong(t.pickupDate)) : '') + clip;
+        badge = 'AWAITING COPY'; cls = ' wait-badge';
+      } else if (kind === 'done') {
+        meta += ' &middot; DO ' + escapeHtml(t.doNo || '') + clip;
+        badge = t.copyReturnedDate ? 'Copy returned ' + fmtDateLong(t.copyReturnedDate) : 'COMPLETED'; cls = ' done-badge';
+      } else {
+        meta += clip; badge = 'PENDING';
+      }
       return '<div class="pending-item" data-id="' + escapeHtml(t.id) + '"><div><div class="rpo">' + escapeHtml(t.invoiceNo) + '</div>' +
-        '<div class="meta">' + trLine_(t) + (opts && opts.done ? ' &middot; DO ' + escapeHtml(t.doNo || '') + (t.attachmentUrl ? ' &middot; &#128206;' : '') : '') + '</div></div>' +
-        '<span class="pending-badge' + (opts && opts.done ? ' done-badge' : '') + '">' + (opts && opts.done ? escapeHtml(t.pickupDate ? fmtDateLong(t.pickupDate) : 'DONE') : 'PENDING') + '</span></div>';
+        '<div class="meta">' + meta + '</div></div><span class="pending-badge' + cls + '">' + escapeHtml(badge) + '</span></div>';
     }
     function trMatch_(t, q) {
       var tokens = q.toUpperCase().split(/\s+/).filter(Boolean);
-      var hay = (t.invoiceNo + ' ' + t.transferTo + ' ' + t.department).toUpperCase();
+      var hay = (t.invoiceNo + ' ' + t.transferTo + ' ' + t.department + ' ' + (t.doNo || '')).toUpperCase();
       return tokens.every(function (x) { return hay.indexOf(x) !== -1; });
     }
 
@@ -3431,7 +3575,7 @@
       tbReview = trPending.filter(function (t) { return tbSel[t.id]; });
       if (!tbReview.length) return;
       if (tbReview.length > 200) { alert('Please select 200 transfers or fewer at a time.'); return; }
-      trStatus_('tbr_status', '', ''); tbrAttach.reset(null);
+      trStatus_('tbr_status', '', ''); tbrAttach.reset();
       renderTbReview(); trNav_('trBulkReviewScreen');
     });
     function renderTbReview() {
@@ -3441,7 +3585,7 @@
           '<div class="bk-meta">' + trLine_(t) + (t.remark ? ' &middot; ' + escapeHtml(t.remark) : '') + '</div></div>' +
           '<button type="button" class="tr-item-x" data-id="' + escapeHtml(t.id) + '">Remove</button></div>';
       }).join('');
-      $id('tbr_submitBtn').textContent = 'Complete ' + tbReview.length + (tbReview.length === 1 ? ' Transfer' : ' Transfers');
+      $id('tbr_submitBtn').textContent = 'Update ' + tbReview.length + (tbReview.length === 1 ? ' Transfer' : ' Transfers');
     }
     $id('tbr_list').addEventListener('click', function (e) {
       var b = e.target.closest && e.target.closest('.tr-item-x'); if (!b) return;
@@ -3464,15 +3608,15 @@
       setBusy_(btn, 'tbr_progress', true, tbrAttach.hasFile() ? 'Uploading...' : 'Updating...');
       tbrAttach.resolve().then(function (att) {
         btn.textContent = 'Updating...';
-        return api_('PATCH', '/api/transfers', { ids: tbReview.map(function (t) { return t.id; }), doNo: doNo, pickupDate: pickup, updatedBy: by, attachment: att });
+        return api_('PATCH', '/api/transfers', { ids: tbReview.map(function (t) { return t.id; }), doNo: doNo, pickupDate: pickup, updatedBy: by, attachments: att });
       }).then(function (res) {
         setBusy_(btn, 'tbr_progress', false, label);
         var skipped = tbReview.filter(function (t) { return res.skipped.indexOf(t.id) !== -1; }).map(function (t) { return t.invoiceNo; });
-        var msg = 'Completed ' + res.updated.length + ' transfer' + (res.updated.length === 1 ? '' : 's') + ' (DO ' + doNo.toUpperCase() + ').';
-        if (skipped.length) msg += ' Skipped ' + skipped.length + ' (already completed or removed by someone else): ' + skipped.join(', ') + '.';
+        var msg = 'Moved ' + res.updated.length + ' transfer' + (res.updated.length === 1 ? '' : 's') + ' to Awaiting Copy-Document (DO ' + doNo.toUpperCase() + ').';
+        if (skipped.length) msg += ' Skipped ' + skipped.length + ' (already updated or removed by someone else, or too many attachments): ' + skipped.join(', ') + '.';
         tbSel = {}; tbReview = [];
         ['tbr_doNo', 'tbr_pickup', 'tbr_updatedBy'].forEach(function (id) { $id(id).value = ''; });
-        $id('tb_search').value = '';
+        $id('tb_search').value = ''; tbrAttach.reset();
         showScreen('trPendingScreen'); setTpMode(true);
         showStatus('statusBanner', skipped.length ? 'error' : 'ok', msg);
         loadTrPending();
@@ -3482,78 +3626,135 @@
       });
     });
 
-    // ---------- Detail (pending: complete it; completed: correct / undo) ----------
-    function openTrDetail(t, fromCompleted) {
+    // ---------- Detail: PENDING (enter DO No + pickup), AWAITING_COPY (enter copy-document return), COMPLETED (correct / undo) ----------
+    var TD_BUTTONS = ['td_editBtn', 'td_deleteBtn', 'td_saveBtn', 'td_undoBtn', 'td_copySaveBtn', 'td_undoCopyBtn'];
+    function renderTdAttachments_(t) {
+      var list = t.attachments || [];
+      $id('td_attN').textContent = list.length;
+      $id('td_attList').innerHTML = list.length
+        ? '<div class="att-list">' + list.map(function (a) {
+            return '<div class="att-item"><span>' + (a.type === 'application/pdf' ? '&#128196;' : '&#128247;') + '</span>' +
+              '<a href="' + escapeHtml(a.url) + '" target="_blank" rel="noopener">' + escapeHtml(a.name) + '</a>' +
+              '<button type="button" class="att-x" data-url="' + escapeHtml(a.url) + '">Remove</button></div>';
+          }).join('') + '</div>'
+        : '<p class="att-empty">No attachments yet.</p>';
+    }
+    function openTrDetail(t) {
       trCurrent = t;
-      var done = t.status === 'COMPLETED';
+      var pend = t.status === 'PENDING', wait = t.status === 'AWAITING_COPY', done = t.status === 'COMPLETED';
       $id('td_title').textContent = t.invoiceNo;
-      var badge = $id('td_badge'); badge.textContent = done ? 'COMPLETED' : 'PENDING'; badge.className = 'pending-badge' + (done ? ' done-badge' : '');
-      $id('td_grid').innerHTML = trGridHtml_(t, '<div class="it"><span>Submitted</span><b>' + escapeHtml(t.dateSubmitted || '—') + '</b></div>' +
-        (done ? '<div class="it"><span>Completed</span><b>' + escapeHtml(t.dateUpdated || '—') + '</b></div>' : ''));
-      $id('td_editBtn').style.display = done ? 'none' : '';
-      $id('td_deleteBtn').style.display = done ? 'none' : '';
-      $id('td_undoBtn').style.display = done ? '' : 'none';
-      $id('td_formTitle').textContent = done ? 'Completion Details' : 'Complete this Transfer';
-      $id('td_saveBtn').textContent = done ? 'Save Changes' : 'Complete';
-      $id('td_doNo').value = done ? (t.doNo || '') : '';
-      $id('td_pickup').value = done ? (t.pickupDate || '') : '';
-      $id('td_updatedBy').value = done ? (t.updatedBy || '') : '';
-      tdAttach.reset(done && t.attachmentUrl ? { url: t.attachmentUrl, name: t.attachmentName || 'attachment', type: t.attachmentType } : null);
-      trStatus_('td_status', '', '');
-      ['td_editBtn', 'td_deleteBtn', 'td_saveBtn', 'td_undoBtn'].forEach(function (id) { $id(id).disabled = false; });
+      var badge = $id('td_badge');
+      badge.textContent = done ? 'COMPLETED' : wait ? 'AWAITING COPY-DOCUMENT' : 'PENDING';
+      badge.className = 'pending-badge' + (done ? ' done-badge' : wait ? ' wait-badge' : '');
+      var it = function (l, v) { return '<div class="it"><span>' + l + '</span><b>' + escapeHtml(v || '—') + '</b></div>'; };
+      var extra = it('Submitted', t.dateSubmitted);
+      if (!pend) extra += it('DO No', t.doNo) + it('Pickup Date', t.pickupDate ? fmtDateLong(t.pickupDate) : '') + it('Updated By', t.updatedBy);
+      if (done) extra += it('Copy-Document Returned', t.copyReturnedDate ? fmtDateLong(t.copyReturnedDate) : '') + it('Submitted By', t.copySubmittedBy) + it('Completed', t.dateCopyUpdated);
+      $id('td_grid').innerHTML = trGridHtml_(t, extra);
+      $id('td_editBtn').style.display = pend ? '' : 'none';
+      $id('td_deleteBtn').style.display = pend ? '' : 'none';
+      renderTdAttachments_(t); $id('td_attFile').value = ''; $id('td_attInfo').textContent = ''; $id('td_attInfo').className = 'att-info';
+
+      // card 1: DO No + pickup date
+      $id('td_formTitle').textContent = pend ? 'Update DO No & Pickup Date' : 'DO No & Pickup Date';
+      $id('td_formHelp').textContent = pend ? 'After this the transfer moves to Awaiting Copy-Document.' : done ? 'Saved together with the copy-document details below.' : '';
+      $id('td_formHelp').style.display = $id('td_formHelp').textContent ? '' : 'none';
+      $id('td_doNo').value = pend ? '' : (t.doNo || '');
+      $id('td_pickup').value = pend ? '' : (t.pickupDate || '');
+      $id('td_updatedBy').value = pend ? '' : (t.updatedBy || '');
+      $id('td_saveBtn').textContent = pend ? 'Update' : 'Save Changes';
+      $id('td_saveBtn').style.display = done ? 'none' : '';
+      $id('td_undoBtn').style.display = wait ? '' : 'none';
+      // card 2: returned copy-document
+      $id('td_copyCard').style.display = pend ? 'none' : '';
+      $id('td_copyHelp').textContent = wait ? 'Enter the date the signed copy-document came back and who submitted it. This completes the transfer.' : '';
+      $id('td_copyHelp').style.display = wait ? '' : 'none';
+      $id('td_copyDate').value = done ? (t.copyReturnedDate || '') : '';
+      $id('td_copyBy').value = done ? (t.copySubmittedBy || '') : '';
+      $id('td_copySaveBtn').textContent = done ? 'Save Changes' : 'Complete Transfer';
+      $id('td_undoCopyBtn').style.display = done ? '' : 'none';
+      trStatus_('td_status', '', ''); trStatus_('td_cstatus', '', '');
+      TD_BUTTONS.forEach(function (id) { $id(id).disabled = false; });
       showScreen('trDetailScreen');
-      setActiveNav(done ? 'navTrCompleted' : 'navTrPending');
+      setActiveNav(done ? 'navTrCompleted' : wait ? 'navTrAwait' : 'navTrPending');
       window.scrollTo(0, 0);
     }
     $id('td_back').addEventListener('click', function () {
-      if (trCurrent && trCurrent.status === 'COMPLETED') { trNav_('trCompletedScreen'); loadTrCompleted(); }
+      var st = trCurrent && trCurrent.status;
+      if (st === 'COMPLETED') { trNav_('trCompletedScreen'); loadTrCompleted(); }
+      else if (st === 'AWAITING_COPY') { trNav_('trAwaitScreen'); loadTrAwait(); }
       else { showScreen('trPendingScreen'); loadTrPending(); }
     });
     $id('td_printBtn').addEventListener('click', function () {
       var t = trCurrent; if (t) openLabelScreen_(t, function () { openTrDetail(t); });
     });
+    function goPending_(msg, kind) { $id('tp_search').value = ''; showScreen('trPendingScreen'); setTpMode(false); showStatus('statusBanner', kind || 'ok', msg); loadTrPending(); }
+    function goAwait_(msg, kind) { $id('aw_search').value = ''; showScreen('trAwaitScreen'); setAwMode(false); showStatus('statusBanner', kind || 'ok', msg); loadTrAwait(); }
+    function goCompleted_(msg) { showScreen('trCompletedScreen'); showStatus('statusBanner', 'ok', msg); loadTrCompleted(); }
 
+    // card 1 button: PENDING -> AWAITING_COPY, or fix the DO details of an AWAITING_COPY transfer
     $id('td_saveBtn').addEventListener('click', function () {
       var t = trCurrent; if (!t) return;
-      var done = t.status === 'COMPLETED';
+      var pend = t.status === 'PENDING';
       var doNo = $id('td_doNo').value.trim(), pickup = $id('td_pickup').value, by = $id('td_updatedBy').value.trim();
       if (!doNo) { trStatus_('td_status', 'error', 'Please enter the DO No.'); $id('td_doNo').focus(); return; }
       if (!pickup) { trStatus_('td_status', 'error', 'Please select the Pickup Date.'); return; }
       if (!by) { trStatus_('td_status', 'error', 'Please enter who updated this transfer.'); $id('td_updatedBy').focus(); return; }
       var btn = this, label = btn.textContent;
       trStatus_('td_status', '', '');
-      setBusy_(btn, 'td_progress', true, tdAttach.hasFile() ? 'Uploading...' : 'Saving...');
-      tdAttach.resolve().then(function (att) {
-        btn.textContent = 'Saving...';
-        return api_('PATCH', '/api/transfers/' + t.id, { action: done ? 'correct' : 'complete', doNo: doNo, pickupDate: pickup, updatedBy: by, attachment: att });
-      }).then(function (res) {
+      setBusy_(btn, 'td_progress', true, 'Saving...');
+      api_('PATCH', '/api/transfers/' + t.id, { action: pend ? 'complete' : 'correct', doNo: doNo, pickupDate: pickup, updatedBy: by }).then(function (res) {
         setBusy_(btn, 'td_progress', false, label);
-        if (done) {
-          trCurrent = res.item; openTrDetail(res.item);
-          showStatus('statusBanner', 'ok', 'Saved changes to ' + res.item.invoiceNo + '.');
-          loadTrCompleted();
-        } else {
-          $id('tp_search').value = '';
-          showScreen('trPendingScreen'); setTpMode(false);
-          showStatus('statusBanner', 'ok', 'Completed ' + res.item.invoiceNo + ' (DO ' + res.item.doNo + ').');
-          loadTrPending();
-        }
+        if (pend) goPending_(res.item.invoiceNo + ' moved to Awaiting Copy-Document (DO ' + res.item.doNo + ').');
+        else { openTrDetail(res.item); showStatus('statusBanner', 'ok', 'Saved changes to ' + res.item.invoiceNo + '.'); loadTrAwait(); }
       }).catch(function (err) {
         setBusy_(btn, 'td_progress', false, label);
         trStatus_('td_status', 'error', err && err.message ? err.message : 'Could not save. Please try again.');
       });
     });
 
-    $id('td_undoBtn').addEventListener('click', function () {
+    // card 2 button: AWAITING_COPY -> COMPLETED, or correct everything on a COMPLETED transfer
+    $id('td_copySaveBtn').addEventListener('click', function () {
       var t = trCurrent; if (!t) return;
-      if (!confirm('Send ' + t.invoiceNo + ' back to Pending? Its DO No, pickup date and attachment will be cleared.')) return;
+      var done = t.status === 'COMPLETED';
+      var cDate = $id('td_copyDate').value, cBy = $id('td_copyBy').value.trim();
+      if (!cDate) { trStatus_('td_cstatus', 'error', 'Please select the Returned Copy-Document Date.'); return; }
+      if (!cBy) { trStatus_('td_cstatus', 'error', 'Please enter who submitted the copy-document.'); $id('td_copyBy').focus(); return; }
+      var body = { action: done ? 'correct' : 'copy', copyReturnedDate: cDate, copySubmittedBy: cBy };
+      if (done) {
+        var doNo = $id('td_doNo').value.trim(), pickup = $id('td_pickup').value, by = $id('td_updatedBy').value.trim();
+        if (!doNo || !pickup || !by) { trStatus_('td_cstatus', 'error', 'DO No, Pickup Date and Updated By (above) cannot be empty.'); return; }
+        body.doNo = doNo; body.pickupDate = pickup; body.updatedBy = by;
+      }
+      var btn = this, label = btn.textContent;
+      trStatus_('td_cstatus', '', '');
+      setBusy_(btn, 'td_cprogress', true, 'Saving...');
+      api_('PATCH', '/api/transfers/' + t.id, body).then(function (res) {
+        setBusy_(btn, 'td_cprogress', false, label);
+        if (done) { openTrDetail(res.item); showStatus('statusBanner', 'ok', 'Saved changes to ' + res.item.invoiceNo + '.'); loadTrCompleted(); }
+        else goAwait_('Completed ' + res.item.invoiceNo + ' (copy-document returned ' + fmtDateLong(res.item.copyReturnedDate) + ').');
+      }).catch(function (err) {
+        setBusy_(btn, 'td_cprogress', false, label);
+        trStatus_('td_cstatus', 'error', err && err.message ? err.message : 'Could not save. Please try again.');
+      });
+    });
+
+    // one step back
+    $id('td_undoBtn').addEventListener('click', function () {            // AWAITING_COPY -> PENDING
+      var t = trCurrent; if (!t) return;
+      if (!confirm('Send ' + t.invoiceNo + ' back to Pending? Its DO No and pickup date will be cleared (attachments are kept).')) return;
       var btn = this; btn.disabled = true;
-      api_('PATCH', '/api/transfers/' + t.id, { action: 'undo' }).then(function (res) {
-        btn.disabled = false; $id('tp_search').value = '';
-        showScreen('trPendingScreen'); setTpMode(false);
-        showStatus('statusBanner', 'ok', res.item.invoiceNo + ' is back in Pending Inter-Outlet Transfers.');
-        loadTrPending(); loadTrCompleted();
+      api_('PATCH', '/api/transfers/' + t.id, { action: 'undo', from: 'AWAITING_COPY' }).then(function (res) {
+        btn.disabled = false; goPending_(res.item.invoiceNo + ' is back in Pending Inter-Outlet Transfers.'); loadTrAwait();
       }).catch(function (err) { btn.disabled = false; trStatus_('td_status', 'error', err && err.message ? err.message : 'Could not undo.'); });
+    });
+    $id('td_undoCopyBtn').addEventListener('click', function () {        // COMPLETED -> AWAITING_COPY
+      var t = trCurrent; if (!t) return;
+      if (!confirm('Send ' + t.invoiceNo + ' back to Awaiting Copy-Document? Its copy-document details will be cleared.')) return;
+      var btn = this; btn.disabled = true;
+      api_('PATCH', '/api/transfers/' + t.id, { action: 'undo', from: 'COMPLETED' }).then(function (res) {
+        btn.disabled = false; goAwait_(res.item.invoiceNo + ' is back in Awaiting Copy-Document.'); loadTrCompleted();
+      }).catch(function (err) { btn.disabled = false; trStatus_('td_cstatus', 'error', err && err.message ? err.message : 'Could not undo.'); });
     });
 
     $id('td_deleteBtn').addEventListener('click', function () {
@@ -3561,11 +3762,43 @@
       if (!confirm('Delete ' + t.invoiceNo + '? This cannot be undone.')) return;
       var btn = this; btn.disabled = true;
       api_('DELETE', '/api/transfers/' + t.id).then(function () {
-        btn.disabled = false; $id('tp_search').value = '';
-        showScreen('trPendingScreen'); setTpMode(false);
-        showStatus('statusBanner', 'ok', 'Deleted ' + t.invoiceNo + '.');
-        loadTrPending();
+        btn.disabled = false; goPending_('Deleted ' + t.invoiceNo + '.');
       }).catch(function (err) { btn.disabled = false; trStatus_('td_status', 'error', err && err.message ? err.message : 'Could not delete.'); });
+    });
+
+    // ---- attachments: add more / remove (any status; saved straight away) ----
+    function tdAttMsg_(kind, msg) { var el = $id('td_attInfo'); el.className = 'att-info' + (kind === 'err' ? ' err' : ''); el.textContent = msg || ''; }
+    $id('td_attFile').addEventListener('change', function () {
+      var t = trCurrent, input = this, files = Array.prototype.slice.call(input.files || []); input.value = '';
+      if (!t || !files.length) return;
+      var room = MAX_ATTACH_TOTAL - attCount_(t);
+      if (room <= 0) { tdAttMsg_('err', 'This transfer already has ' + MAX_ATTACH_TOTAL + ' attachments. Remove one first.'); return; }
+      var note = '';
+      if (files.length > Math.min(room, MAX_ATTACH_BATCH)) { note = ' Only the first ' + Math.min(room, MAX_ATTACH_BATCH) + ' were added (limit ' + MAX_ATTACH_TOTAL + ' per transfer, ' + MAX_ATTACH_BATCH + ' at a time).'; files = files.slice(0, Math.min(room, MAX_ATTACH_BATCH)); }
+      var errs = [], ups = [];
+      tdAttMsg_('', 'Uploading ' + files.length + ' file' + (files.length === 1 ? '' : 's') + '...');
+      input.disabled = true;
+      files.reduce(function (p, f) {
+        return p.then(function () {
+          return prepareAttachment_(f).then(uploadAttachment_).then(function (u) { ups.push(u); }).catch(function (e) { errs.push(f.name + ': ' + e.message); });
+        });
+      }, Promise.resolve()).then(function () {
+        if (!ups.length) { input.disabled = false; tdAttMsg_('err', errs.join(' ')); return; }
+        return api_('PATCH', '/api/transfers/' + t.id, { action: 'attach', attachments: ups }).then(function (res) {
+          input.disabled = false;
+          if (trCurrent && trCurrent.id === t.id) { trCurrent = res.item; renderTdAttachments_(res.item); }
+          tdAttMsg_(errs.length ? 'err' : '', (errs.length ? errs.join(' ') + ' ' : '') + 'Added ' + ups.length + ' attachment' + (ups.length === 1 ? '' : 's') + '.' + note);
+        });
+      }).catch(function (err) { input.disabled = false; tdAttMsg_('err', err && err.message ? err.message : 'Could not add the attachment.'); });
+    });
+    $id('td_attList').addEventListener('click', function (e) {
+      var b = e.target.closest && e.target.closest('.att-x'); if (!b) return;
+      var t = trCurrent; if (!t) return;
+      if (!confirm('Remove this attachment?')) return;
+      b.disabled = true;
+      api_('PATCH', '/api/transfers/' + t.id, { action: 'detach', url: b.getAttribute('data-url') }).then(function (res) {
+        if (trCurrent && trCurrent.id === t.id) { trCurrent = res.item; renderTdAttachments_(res.item); tdAttMsg_('', 'Attachment removed.'); }
+      }).catch(function (err) { b.disabled = false; tdAttMsg_('err', err && err.message ? err.message : 'Could not remove the attachment.'); });
     });
 
     // ---------- Edit pending transfer (window) ----------
@@ -3618,23 +3851,142 @@
       });
     });
 
+    // ---------- Awaiting Copy-Document: single ----------
+    function renderTrAwait() {
+      var q = $id('aw_search').value.trim();
+      var rows = q ? trAwaiting.filter(function (t) { return trMatch_(t, q); }) : trAwaiting;
+      $id('aw_count').textContent = rows.length;
+      $id('aw_empty').style.display = rows.length ? 'none' : 'block';
+      $id('aw_list').innerHTML = rows.map(function (t) { return trItemHtml_(t, { kind: 'await' }); }).join('');
+    }
+    $id('aw_search').addEventListener('input', renderTrAwait);
+    $id('aw_list').addEventListener('click', function (e) {
+      var el = e.target.closest && e.target.closest('.pending-item'); if (!el) return;
+      var t = trAwaiting.filter(function (x) { return x.id === el.getAttribute('data-id'); })[0];
+      if (t) openTrDetail(t);
+    });
+    $id('aw_back').addEventListener('click', function () { showScreen('homeScreen'); });
+    function setAwMode(bulk) {
+      $id('awSingle').style.display = bulk ? 'none' : 'block';
+      $id('awBulk').style.display = bulk ? 'block' : 'none';
+      $id('awModeSingle').classList.toggle('active', !bulk);
+      $id('awModeBulk').classList.toggle('active', bulk);
+      if (bulk) abRender();
+    }
+    $id('awModeSingle').addEventListener('click', function () { setAwMode(false); });
+    $id('awModeBulk').addEventListener('click', function () { setAwMode(true); });
+
+    // ---------- Awaiting Copy-Document: bulk ----------
+    function abShown_() {
+      var q = $id('ab_search').value.trim();
+      return q ? trAwaiting.filter(function (t) { return trMatch_(t, q); }) : trAwaiting.slice();
+    }
+    function abRender() {
+      var rows = abShown_();
+      $id('ab_shown').textContent = rows.length;
+      $id('ab_empty').style.display = rows.length ? 'none' : 'block';
+      $id('ab_list').innerHTML = rows.map(function (t) {
+        return '<label class="bk-row' + (abSel[t.id] ? ' checked' : '') + '" data-id="' + escapeHtml(t.id) + '">' +
+          '<input type="checkbox" data-id="' + escapeHtml(t.id) + '"' + (abSel[t.id] ? ' checked' : '') + '>' +
+          '<div class="bk-row-main"><div class="bk-rpo">' + escapeHtml(t.invoiceNo) + '</div><div class="bk-meta">' + trLine_(t) + ' &middot; DO ' + escapeHtml(t.doNo || '') + '</div></div></label>';
+      }).join('');
+      var sel = trAwaiting.filter(function (t) { return abSel[t.id]; });
+      $id('ab_selN').textContent = sel.length;
+      $id('ab_selCard').style.display = sel.length ? 'block' : 'none';
+      $id('ab_chips').innerHTML = sel.map(function (t) {
+        return '<button type="button" class="bk-chip" data-id="' + escapeHtml(t.id) + '" title="Remove">' + escapeHtml(t.invoiceNo) + '<b>&times;</b></button>';
+      }).join('');
+      $id('ab_bar').style.display = sel.length ? 'flex' : 'none';
+      $id('ab_barCount').textContent = sel.length + ' selected';
+      $id('ab_continueBtn').disabled = !sel.length;
+      $id('ab_continueBtn').textContent = sel.length ? 'Continue (' + sel.length + ')' : 'Continue';
+    }
+    $id('ab_search').addEventListener('input', abRender);
+    $id('ab_clearSearch').addEventListener('click', function () { $id('ab_search').value = ''; abRender(); $id('ab_search').focus(); });
+    $id('ab_list').addEventListener('change', function (e) {
+      if (!e.target || e.target.type !== 'checkbox') return;
+      var id = e.target.getAttribute('data-id');
+      if (e.target.checked) abSel[id] = true; else delete abSel[id];
+      abRender();
+    });
+    $id('ab_chips').addEventListener('click', function (e) {
+      var b = e.target.closest && e.target.closest('.bk-chip'); if (!b) return;
+      delete abSel[b.getAttribute('data-id')]; abRender();
+    });
+    $id('ab_tickAll').addEventListener('click', function () { abShown_().forEach(function (t) { abSel[t.id] = true; }); abRender(); });
+    $id('ab_untickAll').addEventListener('click', function () { abShown_().forEach(function (t) { delete abSel[t.id]; }); abRender(); });
+    $id('ab_clearSel').addEventListener('click', function () { abSel = {}; abRender(); });
+    $id('ab_continueBtn').addEventListener('click', function () {
+      abReview = trAwaiting.filter(function (t) { return abSel[t.id]; });
+      if (!abReview.length) return;
+      if (abReview.length > 200) { alert('Please select 200 transfers or fewer at a time.'); return; }
+      trStatus_('abr_status', '', ''); abrAttach.reset();
+      renderAbReview(); trNav_('trAwaitBulkReviewScreen');
+    });
+    function renderAbReview() {
+      $id('abr_count').textContent = abReview.length;
+      $id('abr_list').innerHTML = abReview.map(function (t) {
+        return '<div class="bk-row" style="cursor:default;" data-id="' + escapeHtml(t.id) + '"><div class="bk-row-main"><div class="bk-rpo">' + escapeHtml(t.invoiceNo) + '</div>' +
+          '<div class="bk-meta">' + trLine_(t) + ' &middot; DO ' + escapeHtml(t.doNo || '') + '</div></div>' +
+          '<button type="button" class="tr-item-x" data-id="' + escapeHtml(t.id) + '">Remove</button></div>';
+      }).join('');
+      $id('abr_submitBtn').textContent = 'Complete ' + abReview.length + (abReview.length === 1 ? ' Transfer' : ' Transfers');
+    }
+    $id('abr_list').addEventListener('click', function (e) {
+      var b = e.target.closest && e.target.closest('.tr-item-x'); if (!b) return;
+      var id = b.getAttribute('data-id'); delete abSel[id];
+      abReview = abReview.filter(function (t) { return t.id !== id; });
+      if (!abReview.length) { backToAbSelection_(); return; }
+      renderAbReview();
+    });
+    function backToAbSelection_() { showScreen('trAwaitScreen'); setAwMode(true); }
+    $id('abr_back').addEventListener('click', backToAbSelection_);
+    $id('abr_backBtn').addEventListener('click', backToAbSelection_);
+    $id('abr_submitBtn').addEventListener('click', function () {
+      var date = $id('abr_date').value, by = $id('abr_by').value.trim();
+      if (!date) { trStatus_('abr_status', 'error', 'Please select the Returned Copy-Document Date.'); return; }
+      if (!by) { trStatus_('abr_status', 'error', 'Please enter who submitted the copy-documents.'); $id('abr_by').focus(); return; }
+      var btn = this, label = btn.textContent;
+      trStatus_('abr_status', '', '');
+      setBusy_(btn, 'abr_progress', true, abrAttach.hasFile() ? 'Uploading...' : 'Completing...');
+      abrAttach.resolve().then(function (att) {
+        btn.textContent = 'Completing...';
+        return api_('PATCH', '/api/transfers', { action: 'copy', ids: abReview.map(function (t) { return t.id; }), copyReturnedDate: date, copySubmittedBy: by, attachments: att });
+      }).then(function (res) {
+        setBusy_(btn, 'abr_progress', false, label);
+        var skipped = abReview.filter(function (t) { return res.skipped.indexOf(t.id) !== -1; }).map(function (t) { return t.invoiceNo; });
+        var msg = 'Completed ' + res.updated.length + ' transfer' + (res.updated.length === 1 ? '' : 's') + ' (copy-document returned ' + fmtDateLong(date) + ').';
+        if (skipped.length) msg += ' Skipped ' + skipped.length + ' (already changed by someone else, or too many attachments): ' + skipped.join(', ') + '.';
+        abSel = {}; abReview = [];
+        ['abr_date', 'abr_by'].forEach(function (id) { $id(id).value = ''; });
+        $id('ab_search').value = ''; abrAttach.reset();
+        showScreen('trAwaitScreen'); setAwMode(true);
+        showStatus('statusBanner', skipped.length ? 'error' : 'ok', msg);
+        loadTrAwait();
+      }).catch(function (err) {
+        setBusy_(btn, 'abr_progress', false, label);
+        trStatus_('abr_status', 'error', err && err.message ? err.message : 'Could not update. Please try again.');
+      });
+    });
+
     // ---------- Completed ----------
     function renderTrCompleted(q) {
       $id('tc_count').textContent = trCompleted.length;
       $id('tc_empty').style.display = trCompleted.length ? 'none' : 'block';
       $id('tc_note').style.display = (!q && trCompleted.length >= 200) ? 'block' : 'none';
-      $id('tc_list').innerHTML = trCompleted.map(function (t) { return trItemHtml_(t, { done: true }); }).join('');
+      $id('tc_list').innerHTML = trCompleted.map(function (t) { return trItemHtml_(t, { kind: 'done' }); }).join('');
     }
     var tcTimer;
     $id('tc_search').addEventListener('input', function () { clearTimeout(tcTimer); tcTimer = setTimeout(loadTrCompleted, 300); });
     $id('tc_list').addEventListener('click', function (e) {
       var el = e.target.closest && e.target.closest('.pending-item'); if (!el) return;
       var t = trCompleted.filter(function (x) { return x.id === el.getAttribute('data-id'); })[0];
-      if (t) openTrDetail(t, true);
+      if (t) openTrDetail(t);
     });
     $id('tc_back').addEventListener('click', function () { showScreen('homeScreen'); });
 
     // ---------- Summary report ----------
+    var STATUS_LABEL_ = { PENDING: 'Pending', AWAITING_COPY: 'Awaiting Copy-Document', COMPLETED: 'Completed' };
     var tsMode = 'month';
     function setTsMode(m) {
       tsMode = m;
@@ -3669,18 +4021,19 @@
       }).catch(function (err) { setBusy_(btn, null, false, 'Run'); alert(err && err.message ? err.message : 'Could not load the report.'); });
     });
     function tsTableHtml_(cls) {
-      return '<table class="ts-table"><thead><tr><th>#</th><th>Invoice / ODO No</th><th>Transfer To</th><th>Dept</th><th>Date</th><th class="num">Ctn</th><th>Remark</th><th>Status</th><th>DO No</th><th>Pickup</th><th>Updated By</th><th>Attach</th></tr></thead><tbody>' +
+      return '<table class="ts-table"><thead><tr><th>#</th><th>Invoice / ODO No</th><th>Transfer To</th><th>Dept</th><th>Date</th><th class="num">Ctn</th><th>Remark</th><th>Status</th><th>DO No</th><th>Pickup</th><th>Updated By</th><th>Copy Returned</th><th>Submitted By</th><th>Attach</th></tr></thead><tbody>' +
         tsRows.map(function (t, i) {
-          var done = t.status === 'COMPLETED';
+          var done = t.status === 'COMPLETED', wait = t.status === 'AWAITING_COPY', atts = t.attachments || [];
           return '<tr><td>' + (i + 1) + '</td><td>' + escapeHtml(t.invoiceNo) + '</td><td>' + escapeHtml(t.transferTo) + '</td><td>' + escapeHtml(t.department) + '</td><td>' + escapeHtml(tplDate_(t.transferDate)) + '</td><td class="num">' + escapeHtml(t.totalCarton) + '</td><td>' + escapeHtml(t.remark || '') + '</td>' +
-            '<td class="' + (done ? 'ts-st-c' : 'ts-st-p') + '">' + (done ? 'Completed' : 'Pending') + '</td><td>' + escapeHtml(t.doNo || '') + '</td><td>' + escapeHtml(tplDate_(t.pickupDate)) + '</td><td>' + escapeHtml(t.updatedBy || '') + '</td>' +
-            '<td>' + (t.attachmentUrl ? (cls === 'print' ? 'Yes' : '<a href="' + escapeHtml(t.attachmentUrl) + '" target="_blank" rel="noopener">View</a>') : '') + '</td></tr>';
+            '<td class="' + (done ? 'ts-st-c' : wait ? 'ts-st-w' : 'ts-st-p') + '">' + (done ? 'Completed' : wait ? 'Awaiting Copy-Document' : 'Pending') + '</td><td>' + escapeHtml(t.doNo || '') + '</td><td>' + escapeHtml(tplDate_(t.pickupDate)) + '</td><td>' + escapeHtml(t.updatedBy || '') + '</td>' +
+            '<td>' + escapeHtml(tplDate_(t.copyReturnedDate)) + '</td><td>' + escapeHtml(t.copySubmittedBy || '') + '</td>' +
+            '<td>' + (atts.length ? (cls === 'print' ? String(atts.length) : atts.map(function (a, k) { return '<a href="' + escapeHtml(a.url) + '" target="_blank" rel="noopener">' + (k + 1) + '</a>'; }).join(' ')) : '') + '</td></tr>';
         }).join('') + '</tbody></table>';
     }
     function tsTotalsText_() {
-      var p = tsRows.filter(function (t) { return t.status === 'PENDING'; }), c = tsRows.filter(function (t) { return t.status === 'COMPLETED'; });
+      var p = tsRows.filter(function (t) { return t.status === 'PENDING'; }), c = tsRows.filter(function (t) { return t.status === 'COMPLETED'; }), w = tsRows.filter(function (t) { return t.status === 'AWAITING_COPY'; });
       var sum = function (a) { return a.reduce(function (s, t) { return s + Number(t.totalCarton || 0); }, 0); };
-      return tsRows.length + ' transfer' + (tsRows.length === 1 ? '' : 's') + ' / ' + sum(tsRows) + ' cartons  ·  Pending: ' + p.length + ' (' + sum(p) + ' ctn)  ·  Completed: ' + c.length + ' (' + sum(c) + ' ctn)';
+      return tsRows.length + ' transfer' + (tsRows.length === 1 ? '' : 's') + ' / ' + sum(tsRows) + ' cartons  ·  Pending: ' + p.length + ' (' + sum(p) + ' ctn)  ·  Awaiting Copy-Document: ' + w.length + ' (' + sum(w) + ' ctn)  ·  Completed: ' + c.length + ' (' + sum(c) + ' ctn)';
     }
     function renderTsResult() {
       $id('ts_resultCard').style.display = 'block';
@@ -3690,15 +4043,15 @@
     }
     $id('ts_printBtn').addEventListener('click', function () {
       if (!tsRows.length) return;
-      var st = tsMeta.status === 'ALL' ? 'Pending & Completed' : (tsMeta.status === 'PENDING' ? 'Pending only' : 'Completed only');
+      var st = { ALL: 'All statuses', PENDING: 'Pending only', AWAITING_COPY: 'Awaiting Copy-Document only', COMPLETED: 'Completed only' }[tsMeta.status] || '';
       printRoot_('<h1>Goods Transfer Summary - ' + escapeHtml(tsMeta.label) + '</h1><p>' + escapeHtml(st) + ' &middot; ' + escapeHtml(tsTotalsText_()) + '</p>' + tsTableHtml_('print'), '@page{ size:A4 landscape; margin:10mm; }');
     });
     $id('ts_csvBtn').addEventListener('click', function () {
       if (!tsRows.length) return;
-      var head = ['Invoice / ODO No', 'Transfer To', 'Department', 'Date', 'Total Carton', 'Remark', 'Status', 'DO No', 'Pickup Date', 'Updated By', 'Attachment'];
+      var head = ['Invoice / ODO No', 'Transfer To', 'Department', 'Date', 'Total Carton', 'Remark', 'Status', 'DO No', 'Pickup Date', 'Updated By', 'Copy Returned Date', 'Submitted By', 'Attachments'];
       var q = function (v) { v = v === null || v === undefined ? '' : String(v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
       var lines = [head.join(',')].concat(tsRows.map(function (t) {
-        return [t.invoiceNo, t.transferTo, t.department, tplDate_(t.transferDate), t.totalCarton, t.remark, t.status, t.doNo, tplDate_(t.pickupDate), t.updatedBy, t.attachmentUrl].map(q).join(',');
+        return [t.invoiceNo, t.transferTo, t.department, tplDate_(t.transferDate), t.totalCarton, t.remark, STATUS_LABEL_[t.status] || t.status, t.doNo, tplDate_(t.pickupDate), t.updatedBy, tplDate_(t.copyReturnedDate), t.copySubmittedBy, (t.attachments || []).map(function (a) { return a.url; }).join(' ')].map(q).join(',');
       }));
       var blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
       var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'goods-transfers-' + tsMeta.label.replace(/[^\w]+/g, '-') + '.csv';
@@ -3708,6 +4061,7 @@
     // ---------- sidebar navigation ----------
     $id('navTrNew').addEventListener('click', function () { trNav_('trNewScreen'); });
     $id('navTrPending').addEventListener('click', function () { trNav_('trPendingScreen'); loadTrPending(); });
+    $id('navTrAwait').addEventListener('click', function () { trNav_('trAwaitScreen'); loadTrAwait(); });
     $id('navTrCompleted').addEventListener('click', function () { trNav_('trCompletedScreen'); loadTrCompleted(); });
     $id('navTrSummary').addEventListener('click', function () { trNav_('trSummaryScreen'); });
 
@@ -3724,6 +4078,16 @@
           renderTrPending(); tbRender();
         }));
       }
+      if (isVisible_('trAwaitScreen') || isVisible_('trAwaitBulkReviewScreen')) {
+        jobs.push(api_('GET', '/api/transfers?status=AWAITING_COPY').then(function (list) {
+          var sig = JSON.stringify(list);
+          if (sig === trSigs.awaiting && !force) return;
+          trSigs.awaiting = sig; trAwaiting = list;
+          var ids = {}; list.forEach(function (x) { ids[x.id] = true; });
+          Object.keys(abSel).forEach(function (id) { if (!ids[id]) delete abSel[id]; });
+          renderTrAwait(); abRender();
+        }));
+      }
       if (isVisible_('trCompletedScreen')) {
         var q = $id('tc_search').value.trim();
         jobs.push(api_('GET', '/api/transfers?status=COMPLETED' + (q ? '&q=' + encodeURIComponent(q) : '')).then(function (list) {
@@ -3736,8 +4100,8 @@
         jobs.push(api_('GET', '/api/transfers?status=ALL&q=' + encodeURIComponent(trCurrent.invoiceNo)).then(function (list) {
           var now = list.filter(function (x) { return x.id === trCurrent.id; })[0];
           if (!now || now.status !== trCurrent.status) {
-            trStatus_('td_status', 'error', now ? 'Someone else changed this transfer (it is now ' + now.status + '). Go back to see the latest list.' : 'This transfer was removed by someone else. Go back to see the latest list.');
-            ['td_editBtn', 'td_deleteBtn', 'td_saveBtn', 'td_undoBtn'].forEach(function (id) { $id(id).disabled = true; });
+            trStatus_('td_status', 'error', now ? 'Someone else changed this transfer (it is now ' + (STATUS_LABEL_[now.status] || now.status) + '). Go back to see the latest list.' : 'This transfer was removed by someone else. Go back to see the latest list.');
+            TD_BUTTONS.forEach(function (id) { $id(id).disabled = true; });
           }
         }));
       }

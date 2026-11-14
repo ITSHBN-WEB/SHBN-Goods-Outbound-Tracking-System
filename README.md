@@ -32,10 +32,15 @@ Point the card's pending-count URL to `https://<your-project>.vercel.app/api/pen
 
 ## Goods Transfer Record (inter-outlet transfers)
 
-Sidebar group "GOODS TRANSFER": New Transfer, Pending Transfers (single + bulk update), Completed Transfers, Transfer Summary.
+Sidebar group "GOODS TRANSFER": New Transfer, Pending Transfers, Awaiting Copy-Document, Completed Transfers, Transfer Summary.
+
+Two-step flow (single or bulk at each step):
+1. **Pending** - enter DO No, Pickup Date and Updated By -> moves to **Awaiting Copy-Document**.
+2. **Awaiting Copy-Document** - search the ODO number, enter the Returned Copy-Document Date and Submitted By -> **Completed**.
+"Back to ..." steps a transfer back one stage. Attachments (pictures/PDF, up to 10 per transfer, 5 per upload) can be added or removed in any status from the transfer detail screen.
 
 One-time setup:
-1. Neon SQL Editor: run `transfers.sql` (tables `outlets` and `transfers`; outlets are seeded from the 4-digit store codes in `suppliers`).
+1. Neon SQL Editor: run `transfers.sql` (tables `outlets` and `transfers`; safe to re-run - it also upgrades an existing table to the two-step flow; outlets are seeded from the 4-digit store codes in `suppliers`).
 2. Vercel project > Storage > create a **Blob** store and connect it to the project (adds `BLOB_STORE_ID`, or `BLOB_READ_WRITE_TOKEN` on older stores), then redeploy. Without it everything works except attachments.
 
 API: `GET/POST/PATCH /api/transfers`, `PUT/PATCH/DELETE /api/transfers/:id`, `POST /api/transfers/upload`.
