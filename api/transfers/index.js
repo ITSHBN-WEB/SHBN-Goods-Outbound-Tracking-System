@@ -45,6 +45,7 @@ module.exports = route(['GET', 'POST', 'PATCH'], async function (req) {
     const limit = Math.min(parseInt(q.limit, 10) || cap, 5000);
     const order = status === 'COMPLETED' ? 'COALESCE(copy_updated_at, updated_at) DESC NULLS LAST, id DESC'
       : status === 'AWAITING_COPY' ? 'updated_at ASC NULLS LAST, id ASC'          // longest-waiting copy-document first
+      : (status === 'ALL' && needle) ? 'transfer_date DESC, id DESC'              // global search: newest first
       : 'transfer_date ASC, id ASC';
     return await query(
       `SELECT ${TRANSFER_COLUMNS} FROM transfers ${where.length ? 'WHERE ' + where.join(' AND ') : ''} ORDER BY ${order} LIMIT ${limit}`,

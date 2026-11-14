@@ -651,6 +651,13 @@
       border:1px solid rgba(34,211,238,.4); box-shadow:0 10px 30px rgba(0,0,0,.5); color:#dbeafe; font-size:15px; font-weight:700;
     }
     .bk-bar button { padding:12px 28px; font-size:15px; }
+    .fd-btns { display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end; }
+    .fd-row .fd-open { cursor:pointer; }
+    .fd-nobox { flex:0 0 22px; width:22px; }
+    .dash-find { display:flex; gap:10px; margin:0 0 18px; }
+    .dash-find input { flex:1; min-width:0; padding:13px 14px; font-size:15px; color:#edf4ff; background:#0e1520; border:1px solid #344257; border-radius:10px; }
+    .dash-find button { padding:12px 22px; }
+    @media (max-width:560px) { .fd-btns { width:100%; justify-content:stretch; } .fd-btns button { flex:1; padding:12px 10px; } .bk-bar:has(.fd-btns) { flex-wrap:wrap; } }
     .bk-allrow { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin:-2px 0 14px; padding:12px 14px; border-radius:10px; background:#1b2739; }
     .bk-allrow label { color:#cbd8ea; font-size:13.5px; font-weight:700; }
     .bk-allrow select { min-width:180px; padding:10px 12px; font-size:14px; color:#edf4ff; background:#0e1520; border:1px solid #344257; border-radius:8px; }
@@ -872,6 +879,7 @@
       <button type="button" class="side-link" id="navUpdateReturn"><span class="nav-icon">↻</span><span>Pending Return</span></button>
       <button type="button" class="side-link" id="navSummary"><span class="nav-icon">▤</span><span>Summary Report</span></button>
       <div class="side-group">GOODS TRANSFER</div><div class="side-group-gap" style="display:none;"></div>
+      <button type="button" class="side-link" id="navTrFind"><span class="nav-icon">&#128269;</span><span>Find Transfer</span></button>
       <button type="button" class="side-link" id="navTrNew"><span class="nav-icon">⊕</span><span>New Transfer</span></button>
       <button type="button" class="side-link" id="navTrPending"><span class="nav-icon">⇄</span><span>Pending Transfers</span></button>
       <button type="button" class="side-link" id="navTrAwait"><span class="nav-icon">⌛</span><span>Awaiting Copy-Document</span></button>
@@ -911,6 +919,8 @@
         </div>
         <div class="welcome-date" id="welcomeDate"></div>
       </section>
+
+      <form class="dash-find" id="dashFind"><input type="text" id="dashFindInput" placeholder="Find a transfer: Invoice / ODO No, DO No, outlet or department" autocomplete="off" aria-label="Find a transfer"><button type="submit" class="btn-primary">Find</button></form>
 
       <div class="section-kicker dash-sec">SUPPLIER RETURNS</div>
       <section class="dashboard-metrics">
@@ -1153,6 +1163,33 @@
     </div>
 
     <!-- ============ GOODS TRANSFER: NEW ENTRY ============ -->
+    <div id="trFindScreen" style="display:none;">
+      <span class="back-link" id="fd_back">&larr; Back</span>
+      <div class="card">
+        <h2>Find Transfer</h2>
+        <p class="bk-help" style="margin-top:0;">Type an Invoice / ODO No, DO No, outlet or department. It finds the record whatever its status. Tick the Pending or Awaiting ones to update them together - your ticks stay when you search again.</p>
+        <div class="search-row"><input type="text" id="fd_search" placeholder="Invoice / ODO No, DO No, outlet or department" autocomplete="off"><button type="button" class="btn-secondary bk-small" id="fd_clearSearch">Clear</button></div>
+      </div>
+      <div class="card" id="fd_selCard" style="display:none;">
+        <h2>Selected (<span id="fd_selN">0</span>)</h2>
+        <div id="fd_selSummary" class="bk-summary"></div>
+        <div class="bk-chips" id="fd_chips"></div>
+        <button type="button" class="btn-secondary bk-small" id="fd_clearSel">Clear selection</button>
+      </div>
+      <div class="card">
+        <h2>Results (<span id="fd_count">0</span>)</h2>
+        <div id="fd_hint" class="list-empty">Start typing to find a transfer.</div>
+        <div id="fd_empty" class="list-empty" style="display:none;">No transfer matches that search.</div>
+        <div id="fd_note" class="bk-help" style="display:none;">Showing the first 60 matches - type more to narrow it down.</div>
+        <div class="bk-allrow" id="fd_allrow" style="display:none;"><button type="button" class="btn-secondary bk-small" id="fd_tickAll">Tick all shown</button><button type="button" class="btn-secondary bk-small" id="fd_untickAll">Untick all shown</button></div>
+        <div id="fd_list"></div>
+        <div class="bk-bar" id="fd_bar" style="display:none;">
+          <span id="fd_barCount">0 selected</span>
+          <div class="fd-btns"><button type="button" class="btn-primary" id="fd_btnPend" style="display:none;">Update DO No &amp; Pickup</button><button type="button" class="btn-success" id="fd_btnAwait" style="display:none;">Copy-Document Returned</button></div>
+        </div>
+      </div>
+    </div>
+
     <div id="trNewScreen" style="display:none;">
       <span class="back-link" id="tr_backNew">&larr; Back</span>
       <div class="card">
@@ -2127,7 +2164,7 @@
 
     // ---------- Navigation ----------
     function setActiveNav(id) {
-      ['navDashboard', 'navNewReturn', 'navUpdateReturn', 'navSummary', 'navTrNew', 'navTrPending', 'navTrAwait', 'navTrCompleted', 'navTrSummary'].forEach(function (navId) {
+      ['navDashboard', 'navNewReturn', 'navUpdateReturn', 'navSummary', 'navTrFind', 'navTrNew', 'navTrPending', 'navTrAwait', 'navTrCompleted', 'navTrSummary'].forEach(function (navId) {
         var el = document.getElementById(navId);
         if (el) el.classList.toggle('active', navId === id);
       });
@@ -2137,13 +2174,14 @@
 
     function showScreen(id) {
       ['homeScreen', 'newReturnScreen', 'updateListScreen', 'updateDetailScreen', 'bulkReviewScreen', 'summaryScreen',
-       'trNewScreen', 'trResultScreen', 'trLabelScreen', 'trPendingScreen', 'trBulkReviewScreen', 'trAwaitScreen', 'trAwaitBulkReviewScreen', 'trDetailScreen', 'trCompletedScreen', 'trSummaryScreen'].forEach(function (s) {
+       'trFindScreen', 'trNewScreen', 'trResultScreen', 'trLabelScreen', 'trPendingScreen', 'trBulkReviewScreen', 'trAwaitScreen', 'trAwaitBulkReviewScreen', 'trDetailScreen', 'trCompletedScreen', 'trSummaryScreen'].forEach(function (s) {
         document.getElementById(s).style.display = (s === id) ? 'block' : 'none';
       });
       if (id === 'homeScreen') { setActiveNav('navDashboard'); if (typeof loadDashTransfers_ === 'function') loadDashTransfers_(); }
       else if (id === 'newReturnScreen') setActiveNav('navNewReturn');
       else if (id === 'updateListScreen' || id === 'updateDetailScreen' || id === 'bulkReviewScreen') setActiveNav('navUpdateReturn');
       else if (id === 'summaryScreen') setActiveNav('navSummary');
+      else if (id === 'trFindScreen') setActiveNav('navTrFind');
       else if (id === 'trNewScreen' || id === 'trResultScreen') setActiveNav('navTrNew');
       else if (id === 'trPendingScreen' || id === 'trBulkReviewScreen' || id === 'trDetailScreen') setActiveNav('navTrPending');
       else if (id === 'trAwaitScreen' || id === 'trAwaitBulkReviewScreen') setActiveNav('navTrAwait');
@@ -3222,8 +3260,9 @@
     var trPending = [], trAwaiting = [], trCompleted = [], trCurrent = null, trLast = null;
     var trLabelBack = null, tbSel = {}, tbReview = [], abSel = {}, abReview = [], tsRows = [];
     var trSigs = { pending: '', awaiting: '', completed: '' };
+    var fdSel = {}, fdItems = [], fdQuery = '', fdSeq = 0, fdTimer, fdBulk = '', trFromFind = false;
     var MAX_ATTACH_TOTAL = 10, MAX_ATTACH_BATCH = 5;
-    var TR_SCREENS = ['trNewScreen', 'trResultScreen', 'trLabelScreen', 'trPendingScreen', 'trBulkReviewScreen', 'trAwaitScreen', 'trAwaitBulkReviewScreen', 'trDetailScreen', 'trCompletedScreen', 'trSummaryScreen'];
+    var TR_SCREENS = ['trFindScreen', 'trNewScreen', 'trResultScreen', 'trLabelScreen', 'trPendingScreen', 'trBulkReviewScreen', 'trAwaitScreen', 'trAwaitBulkReviewScreen', 'trDetailScreen', 'trCompletedScreen', 'trSummaryScreen'];
 
     function loadOutlets() {
       api_('GET', '/api/transfers?view=outlets')
@@ -3575,7 +3614,7 @@
       tbReview = trPending.filter(function (t) { return tbSel[t.id]; });
       if (!tbReview.length) return;
       if (tbReview.length > 200) { alert('Please select 200 transfers or fewer at a time.'); return; }
-      trStatus_('tbr_status', '', ''); tbrAttach.reset();
+      fdBulk = ''; trStatus_('tbr_status', '', ''); tbrAttach.reset();
       renderTbReview(); trNav_('trBulkReviewScreen');
     });
     function renderTbReview() {
@@ -3589,12 +3628,12 @@
     }
     $id('tbr_list').addEventListener('click', function (e) {
       var b = e.target.closest && e.target.closest('.tr-item-x'); if (!b) return;
-      var id = b.getAttribute('data-id'); delete tbSel[id];
+      var id = b.getAttribute('data-id'); delete tbSel[id]; delete fdSel[id];
       tbReview = tbReview.filter(function (t) { return t.id !== id; });
       if (!tbReview.length) { backToTbSelection_(); return; }
       renderTbReview();
     });
-    function backToTbSelection_() { showScreen('trPendingScreen'); setTpMode(true); }
+    function backToTbSelection_() { if (fdBulk) { fdBulk = ''; showScreen('trFindScreen'); fdRender_(); return; } showScreen('trPendingScreen'); setTpMode(true); }
     $id('tbr_back').addEventListener('click', backToTbSelection_);
     $id('tbr_backBtn').addEventListener('click', backToTbSelection_);
 
@@ -3614,12 +3653,14 @@
         var skipped = tbReview.filter(function (t) { return res.skipped.indexOf(t.id) !== -1; }).map(function (t) { return t.invoiceNo; });
         var msg = 'Moved ' + res.updated.length + ' transfer' + (res.updated.length === 1 ? '' : 's') + ' to Awaiting Copy-Document (DO ' + doNo.toUpperCase() + ').';
         if (skipped.length) msg += ' Skipped ' + skipped.length + ' (already updated or removed by someone else, or too many attachments): ' + skipped.join(', ') + '.';
+        var fromFind = !!fdBulk; tbReview.forEach(function (t) { if (res.skipped.indexOf(t.id) === -1) delete fdSel[t.id]; });
         tbSel = {}; tbReview = [];
         ['tbr_doNo', 'tbr_pickup', 'tbr_updatedBy'].forEach(function (id) { $id(id).value = ''; });
         $id('tb_search').value = ''; tbrAttach.reset();
+        loadTrPending();
+        if (fromFind) { fdBulk = ''; goFind_(msg, skipped.length ? 'error' : 'ok'); return; }
         showScreen('trPendingScreen'); setTpMode(true);
         showStatus('statusBanner', skipped.length ? 'error' : 'ok', msg);
-        loadTrPending();
       }).catch(function (err) {
         setBusy_(btn, 'tbr_progress', false, label);
         trStatus_('tbr_status', 'error', err && err.message ? err.message : 'Could not update. Please try again.');
@@ -3639,8 +3680,8 @@
           }).join('') + '</div>'
         : '<p class="att-empty">No attachments yet.</p>';
     }
-    function openTrDetail(t) {
-      trCurrent = t;
+    function openTrDetail(t, fromFind) {
+      trCurrent = t; trFromFind = !!fromFind;
       var pend = t.status === 'PENDING', wait = t.status === 'AWAITING_COPY', done = t.status === 'COMPLETED';
       $id('td_title').textContent = t.invoiceNo;
       var badge = $id('td_badge');
@@ -3681,15 +3722,16 @@
     }
     $id('td_back').addEventListener('click', function () {
       var st = trCurrent && trCurrent.status;
+      if (trFromFind) { showScreen('trFindScreen'); runFind_(); return; }
       if (st === 'COMPLETED') { trNav_('trCompletedScreen'); loadTrCompleted(); }
       else if (st === 'AWAITING_COPY') { trNav_('trAwaitScreen'); loadTrAwait(); }
       else { showScreen('trPendingScreen'); loadTrPending(); }
     });
     $id('td_printBtn').addEventListener('click', function () {
-      var t = trCurrent; if (t) openLabelScreen_(t, function () { openTrDetail(t); });
+      var t = trCurrent; if (t) openLabelScreen_(t, function () { openTrDetail(t, trFromFind); });
     });
-    function goPending_(msg, kind) { $id('tp_search').value = ''; showScreen('trPendingScreen'); setTpMode(false); showStatus('statusBanner', kind || 'ok', msg); loadTrPending(); }
-    function goAwait_(msg, kind) { $id('aw_search').value = ''; showScreen('trAwaitScreen'); setAwMode(false); showStatus('statusBanner', kind || 'ok', msg); loadTrAwait(); }
+    function goPending_(msg, kind) { if (trFromFind) return goFind_(msg, kind); $id('tp_search').value = ''; showScreen('trPendingScreen'); setTpMode(false); showStatus('statusBanner', kind || 'ok', msg); loadTrPending(); }
+    function goAwait_(msg, kind) { if (trFromFind) return goFind_(msg, kind); $id('aw_search').value = ''; showScreen('trAwaitScreen'); setAwMode(false); showStatus('statusBanner', kind || 'ok', msg); loadTrAwait(); }
     function goCompleted_(msg) { showScreen('trCompletedScreen'); showStatus('statusBanner', 'ok', msg); loadTrCompleted(); }
 
     // card 1 button: PENDING -> AWAITING_COPY, or fix the DO details of an AWAITING_COPY transfer
@@ -3706,7 +3748,7 @@
       api_('PATCH', '/api/transfers/' + t.id, { action: pend ? 'complete' : 'correct', doNo: doNo, pickupDate: pickup, updatedBy: by }).then(function (res) {
         setBusy_(btn, 'td_progress', false, label);
         if (pend) goPending_(res.item.invoiceNo + ' moved to Awaiting Copy-Document (DO ' + res.item.doNo + ').');
-        else { openTrDetail(res.item); showStatus('statusBanner', 'ok', 'Saved changes to ' + res.item.invoiceNo + '.'); loadTrAwait(); }
+        else { openTrDetail(res.item, trFromFind); showStatus('statusBanner', 'ok', 'Saved changes to ' + res.item.invoiceNo + '.'); loadTrAwait(); }
       }).catch(function (err) {
         setBusy_(btn, 'td_progress', false, label);
         trStatus_('td_status', 'error', err && err.message ? err.message : 'Could not save. Please try again.');
@@ -3731,7 +3773,7 @@
       setBusy_(btn, 'td_cprogress', true, 'Saving...');
       api_('PATCH', '/api/transfers/' + t.id, body).then(function (res) {
         setBusy_(btn, 'td_cprogress', false, label);
-        if (done) { openTrDetail(res.item); showStatus('statusBanner', 'ok', 'Saved changes to ' + res.item.invoiceNo + '.'); loadTrCompleted(); }
+        if (done) { openTrDetail(res.item, trFromFind); showStatus('statusBanner', 'ok', 'Saved changes to ' + res.item.invoiceNo + '.'); loadTrCompleted(); }
         else goAwait_('Completed ' + res.item.invoiceNo + ' (copy-document returned ' + fmtDateLong(res.item.copyReturnedDate) + ').');
       }).catch(function (err) {
         setBusy_(btn, 'td_cprogress', false, label);
@@ -3833,7 +3875,7 @@
         original: { transferTo: t.transferTo, invoiceNo: t.invoiceNo, department: t.department, transferDate: t.transferDate, totalCarton: t.totalCarton, remark: t.remark }
       }).then(function (res) {
         btn.disabled = false; btn.textContent = 'Save Changes';
-        closeTrEdit(); openTrDetail(res.item);
+        closeTrEdit(); openTrDetail(res.item, trFromFind);
         showStatus('statusBanner', 'ok', 'Saved changes to ' + res.item.invoiceNo + '.');
         loadTrPending();
       }).catch(function (err) {
@@ -3842,7 +3884,7 @@
           var id = t.id; closeTrEdit();
           loadTrPending().then(function () {
             var fresh = trPending.filter(function (x) { return x.id === id; })[0];
-            if (fresh) openTrDetail(fresh);
+            if (fresh) openTrDetail(fresh, trFromFind);
             showStatus('statusBanner', 'error', err.message);
           });
           return;
@@ -3920,7 +3962,7 @@
       abReview = trAwaiting.filter(function (t) { return abSel[t.id]; });
       if (!abReview.length) return;
       if (abReview.length > 200) { alert('Please select 200 transfers or fewer at a time.'); return; }
-      trStatus_('abr_status', '', ''); abrAttach.reset();
+      fdBulk = ''; trStatus_('abr_status', '', ''); abrAttach.reset();
       renderAbReview(); trNav_('trAwaitBulkReviewScreen');
     });
     function renderAbReview() {
@@ -3934,12 +3976,12 @@
     }
     $id('abr_list').addEventListener('click', function (e) {
       var b = e.target.closest && e.target.closest('.tr-item-x'); if (!b) return;
-      var id = b.getAttribute('data-id'); delete abSel[id];
+      var id = b.getAttribute('data-id'); delete abSel[id]; delete fdSel[id];
       abReview = abReview.filter(function (t) { return t.id !== id; });
       if (!abReview.length) { backToAbSelection_(); return; }
       renderAbReview();
     });
-    function backToAbSelection_() { showScreen('trAwaitScreen'); setAwMode(true); }
+    function backToAbSelection_() { if (fdBulk) { fdBulk = ''; showScreen('trFindScreen'); fdRender_(); return; } showScreen('trAwaitScreen'); setAwMode(true); }
     $id('abr_back').addEventListener('click', backToAbSelection_);
     $id('abr_backBtn').addEventListener('click', backToAbSelection_);
     $id('abr_submitBtn').addEventListener('click', function () {
@@ -3957,12 +3999,14 @@
         var skipped = abReview.filter(function (t) { return res.skipped.indexOf(t.id) !== -1; }).map(function (t) { return t.invoiceNo; });
         var msg = 'Completed ' + res.updated.length + ' transfer' + (res.updated.length === 1 ? '' : 's') + ' (copy-document returned ' + fmtDateLong(date) + ').';
         if (skipped.length) msg += ' Skipped ' + skipped.length + ' (already changed by someone else, or too many attachments): ' + skipped.join(', ') + '.';
+        var fromFindA = !!fdBulk; abReview.forEach(function (t) { if (res.skipped.indexOf(t.id) === -1) delete fdSel[t.id]; });
         abSel = {}; abReview = [];
         ['abr_date', 'abr_by'].forEach(function (id) { $id(id).value = ''; });
         $id('ab_search').value = ''; abrAttach.reset();
+        loadTrAwait();
+        if (fromFindA) { fdBulk = ''; goFind_(msg, skipped.length ? 'error' : 'ok'); return; }
         showScreen('trAwaitScreen'); setAwMode(true);
         showStatus('statusBanner', skipped.length ? 'error' : 'ok', msg);
-        loadTrAwait();
       }).catch(function (err) {
         setBusy_(btn, 'abr_progress', false, label);
         trStatus_('abr_status', 'error', err && err.message ? err.message : 'Could not update. Please try again.');
@@ -4058,6 +4102,110 @@
       document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 500);
     });
 
+    // ---------- Find Transfer (one search for every status; ticks persist across searches) ----------
+    function fdBadge_(t) {
+      var done = t.status === 'COMPLETED', wait = t.status === 'AWAITING_COPY';
+      return '<span class="pending-badge' + (done ? ' done-badge' : wait ? ' wait-badge' : '') + '">' + (done ? 'COMPLETED' : wait ? 'AWAITING COPY' : 'PENDING') + '</span>';
+    }
+    function fdSelected_() { return Object.keys(fdSel).map(function (k) { return fdSel[k]; }); }
+    function fdGroups_() {
+      var all = fdSelected_();
+      return { pend: all.filter(function (t) { return t.status === 'PENDING'; }), wait: all.filter(function (t) { return t.status === 'AWAITING_COPY'; }) };
+    }
+    function fdRender_() {
+      var q = fdQuery, items = fdItems;
+      $id('fd_hint').style.display = q ? 'none' : 'block';
+      $id('fd_empty').style.display = (q && !items.length) ? 'block' : 'none';
+      $id('fd_note').style.display = items.length >= 60 ? 'block' : 'none';
+      $id('fd_count').textContent = items.length;
+      var ticks = items.filter(function (t) { return t.status !== 'COMPLETED'; });
+      $id('fd_allrow').style.display = ticks.length ? 'flex' : 'none';
+      $id('fd_list').innerHTML = items.map(function (t) {
+        var open = t.status !== 'COMPLETED', on = !!fdSel[t.id];
+        var meta = trLine_(t) + (t.doNo ? ' &middot; DO ' + escapeHtml(t.doNo) : '') + (attCount_(t) ? ' &middot; &#128206;' + attCount_(t) : '');
+        return '<div class="bk-row fd-row' + (on ? ' checked' : '') + '" data-id="' + escapeHtml(t.id) + '">' +
+          (open ? '<input type="checkbox" data-id="' + escapeHtml(t.id) + '"' + (on ? ' checked' : '') + ' aria-label="Select ' + escapeHtml(t.invoiceNo) + '">' : '<span class="fd-nobox"></span>') +
+          '<div class="bk-row-main fd-open"><div class="bk-rpo">' + escapeHtml(t.invoiceNo) + '</div><div class="bk-meta">' + meta + '</div></div>' + fdBadge_(t) + '</div>';
+      }).join('');
+      var g = fdGroups_(), n = g.pend.length + g.wait.length;
+      $id('fd_selN').textContent = n;
+      $id('fd_selCard').style.display = n ? 'block' : 'none';
+      var parts = []; if (g.pend.length) parts.push(g.pend.length + ' Pending'); if (g.wait.length) parts.push(g.wait.length + ' Awaiting Copy-Document');
+      $id('fd_selSummary').textContent = parts.join(' · ');
+      $id('fd_chips').innerHTML = g.pend.concat(g.wait).map(function (t) {
+        return '<button type="button" class="bk-chip" data-id="' + escapeHtml(t.id) + '" title="Remove">' + escapeHtml(t.invoiceNo) + '<b>&times;</b></button>';
+      }).join('');
+      $id('fd_bar').style.display = n ? 'flex' : 'none';
+      $id('fd_barCount').textContent = parts.join(' · ') || '0 selected';
+      $id('fd_btnPend').style.display = g.pend.length ? '' : 'none';
+      $id('fd_btnPend').textContent = 'Update DO No & Pickup (' + g.pend.length + ')';
+      $id('fd_btnAwait').style.display = g.wait.length ? '' : 'none';
+      $id('fd_btnAwait').textContent = 'Copy-Document Returned (' + g.wait.length + ')';
+    }
+    function runFind_() {
+      var q = $id('fd_search').value.trim(); fdQuery = q;
+      var seq = ++fdSeq;
+      if (!q) { fdItems = []; fdRender_(); return Promise.resolve(); }
+      return api_('GET', '/api/transfers?status=ALL&limit=60&q=' + encodeURIComponent(q)).then(function (list) {
+        if (seq !== fdSeq) return;
+        fdItems = list;
+        list.forEach(function (t) { if (fdSel[t.id]) { if (t.status === 'COMPLETED') delete fdSel[t.id]; else fdSel[t.id] = t; } });
+        fdRender_();
+      }).catch(function (err) {
+        if (seq !== fdSeq) return;
+        showStatus('statusBanner', 'error', err && err.message ? err.message : 'Search failed. Please try again.');
+      });
+    }
+    function goFind_(msg, kind) { showScreen('trFindScreen'); window.scrollTo(0, 0); if (msg) showStatus('statusBanner', kind || 'ok', msg); return runFind_(); }
+    function openFind_(q) {
+      showScreen('trFindScreen'); window.scrollTo(0, 0);
+      if (q !== undefined) $id('fd_search').value = q;
+      runFind_();
+      if (!window.matchMedia || !window.matchMedia('(max-width:760px)').matches) $id('fd_search').focus();
+    }
+    $id('fd_search').addEventListener('input', function () { clearTimeout(fdTimer); fdTimer = setTimeout(runFind_, 300); });
+    $id('fd_search').addEventListener('keydown', function (e) { if (e.key === 'Enter') { clearTimeout(fdTimer); runFind_(); } });
+    $id('fd_clearSearch').addEventListener('click', function () { $id('fd_search').value = ''; runFind_(); $id('fd_search').focus(); });
+    $id('fd_back').addEventListener('click', function () { showScreen('homeScreen'); });
+    $id('fd_list').addEventListener('change', function (e) {
+      if (!e.target || e.target.type !== 'checkbox') return;
+      var id = e.target.getAttribute('data-id');
+      var t = fdItems.filter(function (x) { return x.id === id; })[0];
+      if (e.target.checked && t) fdSel[id] = t; else delete fdSel[id];
+      fdRender_();
+    });
+    $id('fd_list').addEventListener('click', function (e) {
+      var o = e.target.closest && e.target.closest('.fd-open'); if (!o) return;
+      var id = o.parentNode.getAttribute('data-id');
+      var t = fdItems.filter(function (x) { return x.id === id; })[0];
+      if (t) openTrDetail(t, true);
+    });
+    $id('fd_chips').addEventListener('click', function (e) {
+      var b = e.target.closest && e.target.closest('.bk-chip'); if (!b) return;
+      delete fdSel[b.getAttribute('data-id')]; fdRender_();
+    });
+    $id('fd_tickAll').addEventListener('click', function () { fdItems.forEach(function (t) { if (t.status !== 'COMPLETED') fdSel[t.id] = t; }); fdRender_(); });
+    $id('fd_untickAll').addEventListener('click', function () { fdItems.forEach(function (t) { delete fdSel[t.id]; }); fdRender_(); });
+    $id('fd_clearSel').addEventListener('click', function () { fdSel = {}; fdRender_(); });
+    $id('fd_btnPend').addEventListener('click', function () {
+      var list = fdGroups_().pend; if (!list.length) return;
+      if (list.length > 200) { alert('Please select 200 transfers or fewer at a time.'); return; }
+      tbReview = list; fdBulk = 'pend'; trStatus_('tbr_status', '', ''); tbrAttach.reset();
+      renderTbReview(); trNav_('trBulkReviewScreen');
+    });
+    $id('fd_btnAwait').addEventListener('click', function () {
+      var list = fdGroups_().wait; if (!list.length) return;
+      if (list.length > 200) { alert('Please select 200 transfers or fewer at a time.'); return; }
+      abReview = list; fdBulk = 'await'; trStatus_('abr_status', '', ''); abrAttach.reset();
+      renderAbReview(); trNav_('trAwaitBulkReviewScreen');
+    });
+    $id('navTrFind').addEventListener('click', function () { openFind_(); });
+    $id('dashFind').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var q = $id('dashFindInput').value.trim(); $id('dashFindInput').value = '';
+      openFind_(q);
+    });
+
     // ---------- sidebar navigation ----------
     $id('navTrNew').addEventListener('click', function () { trNav_('trNewScreen'); });
     $id('navTrPending').addEventListener('click', function () { trNav_('trPendingScreen'); loadTrPending(); });
@@ -4078,6 +4226,7 @@
           renderTrPending(); tbRender();
         }));
       }
+      if (isVisible_('trFindScreen') && fdQuery) jobs.push(runFind_());
       if (isVisible_('trAwaitScreen') || isVisible_('trAwaitBulkReviewScreen')) {
         jobs.push(api_('GET', '/api/transfers?status=AWAITING_COPY').then(function (list) {
           var sig = JSON.stringify(list);
