@@ -44,3 +44,6 @@ One-time setup:
 2. Vercel project > Storage > create a **Blob** store and connect it to the project (adds `BLOB_STORE_ID`, or `BLOB_READ_WRITE_TOKEN` on older stores), then redeploy. Without it everything works except attachments.
 
 API: `GET/POST/PATCH /api/transfers`, `PUT/PATCH/DELETE /api/transfers/:id`, `POST /api/transfers/upload`.
+
+## Admin Access
+Sidebar > SYSTEM > Admin Access. Logging in (default password `8888`) lets that one device remove attachments and delete pending transfers; the green "ADMIN ACCESS" tag shows under the Refresh button. The login lives only in the page's memory, so refreshing or closing the page ends it, and other devices are not affected. The server checks the password on every remove/delete request. To change the password, set the Vercel environment variable `ADMIN_PIN` and redeploy.

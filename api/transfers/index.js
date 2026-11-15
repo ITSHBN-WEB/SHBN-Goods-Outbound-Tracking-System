@@ -5,7 +5,7 @@
 // PATCH /api/transfers   bulk update, body { ids:[...], ... }
 //         step 1 (default / action:'complete'): { doNo, pickupDate, updatedBy, attachments? }   PENDING -> AWAITING_COPY
 //         step 2 (action:'copy'):               { copyReturnedDate, copySubmittedBy, attachments? }   AWAITING_COPY -> COMPLETED
-const { route, HttpError, query } = require('../../lib/core');
+const { route, HttpError, query, requireAdmin } = require('../../lib/core');
 const { TRANSFER_COLUMNS, parseTransfer, parseBulkTransfers, MAX_ATTACHMENTS, assertInvoiceFree, resolveOutlet, transferCounts } = require('../../lib/core');
 
 function dateParam(v, label) {
@@ -17,6 +17,7 @@ function dateParam(v, label) {
 module.exports = route(['GET', 'POST', 'PATCH'], async function (req) {
   if (req.method === 'GET') {
     const q = req.query || {};
+    if (q.view === 'admin') { requireAdmin(req); return { success: true }; }      // admin log-in check
     if (q.view === 'outlets') {
       return await query('SELECT code, name FROM outlets WHERE active ORDER BY name, code');
     }

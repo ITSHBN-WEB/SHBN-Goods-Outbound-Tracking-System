@@ -651,6 +651,8 @@
       border:1px solid rgba(34,211,238,.4); box-shadow:0 10px 30px rgba(0,0,0,.5); color:#dbeafe; font-size:15px; font-weight:700;
     }
     .bk-bar button { padding:12px 28px; font-size:15px; }
+    .admin-badge { display:none; text-align:right; margin:-6px 0 10px; font-size:13px; font-weight:800; letter-spacing:1.5px; text-transform:uppercase; color:#39ff88; text-shadow:0 0 6px rgba(57,255,136,.9), 0 0 16px rgba(57,255,136,.55); }
+    .admin-badge::before { content:'\25CF  '; }
     .fd-btns { display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end; }
     .fd-row .fd-open { cursor:pointer; }
     .fd-nobox { flex:0 0 22px; width:22px; }
@@ -885,6 +887,8 @@
       <button type="button" class="side-link" id="navTrAwait"><span class="nav-icon">⌛</span><span>Awaiting Copy-Document</span></button>
       <button type="button" class="side-link" id="navTrCompleted"><span class="nav-icon">✓</span><span>Completed Transfers</span></button>
       <button type="button" class="side-link" id="navTrSummary"><span class="nav-icon">≣</span><span>Transfer Summary</span></button>
+      <div class="side-group">SYSTEM</div><div class="side-group-gap" style="display:none;"></div>
+      <button type="button" class="side-link" id="navAdmin"><span class="nav-icon">&#128274;</span><span>Admin Access</span></button>
     </nav>
     <div class="sidebar-footer">
       <span class="status-dot"></span>
@@ -905,6 +909,8 @@
       <span id="refreshStamp">Auto-refresh every 30s</span>
       <button type="button" id="refreshBtn" class="btn-secondary" title="Reload all data now">&#8635; Refresh</button>
     </div>
+
+    <div class="admin-badge" id="adminBadge" role="status">Admin Access</div>
 
     <div id="statusBanner"></div>
 
@@ -1163,6 +1169,23 @@
     </div>
 
     <!-- ============ GOODS TRANSFER: NEW ENTRY ============ -->
+    <div id="adminScreen" style="display:none;">
+      <span class="back-link" id="ad_back">&larr; Back</span>
+      <div class="card">
+        <h2>Admin Access</h2>
+        <div id="ad_out">
+          <p class="bk-help" style="margin-top:0;">Log in as admin to remove attachments and delete pending transfers. The access is for this device only and ends when you refresh or close the page.</p>
+          <div class="field"><label for="ad_pass">Admin password</label><input type="password" id="ad_pass" autocomplete="off" placeholder="Enter admin password"></div>
+          <div id="ad_status"></div>
+          <button type="button" class="btn-primary" id="ad_loginBtn">Log In As Admin</button>
+        </div>
+        <div id="ad_in" style="display:none;">
+          <p class="bk-help" style="margin-top:0;">Admin access is on for this device. You can now remove attachments and delete pending transfers. It ends automatically when you refresh or close the page.</p>
+          <button type="button" class="btn-secondary" id="ad_logoutBtn">Log Out Of Admin</button>
+        </div>
+      </div>
+    </div>
+
     <div id="trFindScreen" style="display:none;">
       <span class="back-link" id="fd_back">&larr; Back</span>
       <div class="card">
@@ -1834,11 +1857,14 @@
 
     // api_('GET', '/api/returns')  /  api_('POST', '/api/returns', {entries: [...]})
     // Resolves with the parsed JSON, rejects with Error(message) on any failure.
+    var adminPin_ = '';          // lives in memory only: a refresh or closing the page ends admin access
+    function isAdmin_() { return !!adminPin_; }
     function api_(method, path, body, isRetry) {
       var headers = {};
       if (body !== undefined) headers['Content-Type'] = 'application/json';
       var pin = getPin_();
       if (pin) headers['X-App-Pin'] = pin;
+      if (adminPin_) headers['X-Admin-Pin'] = adminPin_;
 
       return fetch(API_BASE + path, {
         method: method,
@@ -2165,7 +2191,7 @@
 
     // ---------- Navigation ----------
     function setActiveNav(id) {
-      ['navDashboard', 'navNewReturn', 'navUpdateReturn', 'navSummary', 'navTrFind', 'navTrNew', 'navTrPending', 'navTrAwait', 'navTrCompleted', 'navTrSummary'].forEach(function (navId) {
+      ['navDashboard', 'navNewReturn', 'navUpdateReturn', 'navSummary', 'navTrFind', 'navTrNew', 'navTrPending', 'navTrAwait', 'navTrCompleted', 'navTrSummary', 'navAdmin'].forEach(function (navId) {
         var el = document.getElementById(navId);
         if (el) el.classList.toggle('active', navId === id);
       });
@@ -2174,7 +2200,7 @@
     }
 
     function showScreen(id) {
-      ['homeScreen', 'newReturnScreen', 'updateListScreen', 'updateDetailScreen', 'bulkReviewScreen', 'summaryScreen',
+      ['homeScreen', 'adminScreen', 'newReturnScreen', 'updateListScreen', 'updateDetailScreen', 'bulkReviewScreen', 'summaryScreen',
        'trFindScreen', 'trNewScreen', 'trResultScreen', 'trLabelScreen', 'trPendingScreen', 'trBulkReviewScreen', 'trAwaitScreen', 'trAwaitBulkReviewScreen', 'trDetailScreen', 'trCompletedScreen', 'trSummaryScreen'].forEach(function (s) {
         document.getElementById(s).style.display = (s === id) ? 'block' : 'none';
       });
@@ -2182,6 +2208,7 @@
       else if (id === 'newReturnScreen') setActiveNav('navNewReturn');
       else if (id === 'updateListScreen' || id === 'updateDetailScreen' || id === 'bulkReviewScreen') setActiveNav('navUpdateReturn');
       else if (id === 'summaryScreen') setActiveNav('navSummary');
+      else if (id === 'adminScreen') setActiveNav('navAdmin');
       else if (id === 'trFindScreen') setActiveNav('navTrFind');
       else if (id === 'trNewScreen' || id === 'trResultScreen') setActiveNav('navTrNew');
       else if (id === 'trPendingScreen' || id === 'trBulkReviewScreen' || id === 'trDetailScreen') setActiveNav('navTrPending');
@@ -3677,7 +3704,7 @@
         ? '<div class="att-list">' + list.map(function (a) {
             return '<div class="att-item"><span>' + (a.type === 'application/pdf' ? '&#128196;' : '&#128247;') + '</span>' +
               '<a href="' + escapeHtml(a.url) + '" target="_blank" rel="noopener">' + escapeHtml(a.name) + '</a>' +
-              '<button type="button" class="att-x" data-url="' + escapeHtml(a.url) + '">Remove</button></div>';
+              (isAdmin_() ? '<button type="button" class="att-x" data-url="' + escapeHtml(a.url) + '">Remove</button>' : '') + '</div>';
           }).join('') + '</div>'
         : '<p class="att-empty">No attachments yet.</p>';
     }
@@ -3694,7 +3721,7 @@
       if (done) extra += it('Copy-Document Returned', t.copyReturnedDate ? fmtDateLong(t.copyReturnedDate) : '') + it('Submitted By', t.copySubmittedBy) + it('Completed', t.dateCopyUpdated);
       $id('td_grid').innerHTML = trGridHtml_(t, extra);
       $id('td_editBtn').style.display = pend ? '' : 'none';
-      $id('td_deleteBtn').style.display = pend ? '' : 'none';
+      $id('td_deleteBtn').style.display = (pend && isAdmin_()) ? '' : 'none';
       renderTdAttachments_(t); $id('td_attFile').value = ''; $id('td_attInfo').textContent = ''; $id('td_attInfo').className = 'att-info';
 
       // card 1: DO No + pickup date
@@ -3806,7 +3833,7 @@
       var btn = this; btn.disabled = true;
       api_('DELETE', '/api/transfers/' + t.id).then(function () {
         btn.disabled = false; goPending_('Deleted ' + t.invoiceNo + '.');
-      }).catch(function (err) { btn.disabled = false; trStatus_('td_status', 'error', err && err.message ? err.message : 'Could not delete.'); });
+      }).catch(function (err) { btn.disabled = false; if (err && err.code === 'ADMIN_REQUIRED') adminOff_(); trStatus_('td_status', 'error', err && err.message ? err.message : 'Could not delete.'); });
     });
 
     // ---- attachments: add more / remove (any status; saved straight away) ----
@@ -3841,7 +3868,7 @@
       b.disabled = true;
       api_('PATCH', '/api/transfers/' + t.id, { action: 'detach', url: b.getAttribute('data-url') }).then(function (res) {
         if (trCurrent && trCurrent.id === t.id) { trCurrent = res.item; renderTdAttachments_(res.item); tdAttMsg_('', 'Attachment removed.'); }
-      }).catch(function (err) { b.disabled = false; tdAttMsg_('err', err && err.message ? err.message : 'Could not remove the attachment.'); });
+      }).catch(function (err) { b.disabled = false; if (err && err.code === 'ADMIN_REQUIRED') adminOff_(); tdAttMsg_('err', err && err.message ? err.message : 'Could not remove the attachment.'); });
     });
 
     // ---------- Edit pending transfer (window) ----------
@@ -4206,6 +4233,40 @@
       var q = $id('dashFindInput').value.trim(); $id('dashFindInput').value = '';
       openFind_(q);
     });
+
+    // ---------- Admin Access (this device only, in memory: refresh / close ends it) ----------
+    function applyAdmin_() {
+      var on = isAdmin_();
+      $id('adminBadge').style.display = on ? 'block' : 'none';
+      $id('ad_out').style.display = on ? 'none' : 'block';
+      $id('ad_in').style.display = on ? 'block' : 'none';
+      if (isVisible_('trDetailScreen') && trCurrent) {
+        renderTdAttachments_(trCurrent);
+        $id('td_deleteBtn').style.display = (trCurrent.status === 'PENDING' && on) ? '' : 'none';
+      }
+    }
+    function adminOff_() { adminPin_ = ''; applyAdmin_(); }
+    function adminLogin_() {
+      var pw = $id('ad_pass').value.trim();
+      if (!pw) { trStatus_('ad_status', 'error', 'Please enter the admin password.'); $id('ad_pass').focus(); return; }
+      var btn = $id('ad_loginBtn'), label = btn.textContent;
+      trStatus_('ad_status', '', '');
+      setBusy_(btn, null, true, 'Checking...');
+      adminPin_ = pw;
+      api_('GET', '/api/transfers?view=admin').then(function () {
+        setBusy_(btn, null, false, label);
+        $id('ad_pass').value = ''; applyAdmin_();
+      }).catch(function (err) {
+        setBusy_(btn, null, false, label);
+        adminPin_ = ''; $id('ad_pass').value = ''; applyAdmin_();
+        trStatus_('ad_status', 'error', err && err.code === 'ADMIN_REQUIRED' ? 'Wrong admin password.' : (err && err.message ? err.message : 'Could not log in. Please try again.'));
+      });
+    }
+    $id('ad_loginBtn').addEventListener('click', adminLogin_);
+    $id('ad_pass').addEventListener('keydown', function (e) { if (e.key === 'Enter') adminLogin_(); });
+    $id('ad_logoutBtn').addEventListener('click', function () { adminOff_(); });
+    $id('ad_back').addEventListener('click', function () { showScreen('homeScreen'); });
+    $id('navAdmin').addEventListener('click', function () { trNav_('adminScreen'); applyAdmin_(); if (!isAdmin_()) { try { $id('ad_pass').focus(); } catch (e) {} } });
 
     // ---------- sidebar navigation ----------
     $id('navTrNew').addEventListener('click', function () { trNav_('trNewScreen'); });

@@ -8,10 +8,10 @@
 //              { from: 'COMPLETED' }  -> AWAITING_COPY (copy-document details cleared)
 //              { from: 'AWAITING_COPY' } -> PENDING (DO No / pickup date cleared)
 //   attach   = add attachments in any status          { attachments: [{url,name,type}] }
-//   detach   = remove one attachment in any status    { url }
-// DELETE /api/transfers/:id  only while PENDING
+//   detach   = remove one attachment in any status    { url }   (admin only: X-Admin-Pin header)
+// DELETE /api/transfers/:id  only while PENDING, admin only
 // Every change checks the row's current state inside the SQL itself, so two people acting at once cannot both win.
-const { route, HttpError, query, parseId } = require('../../lib/core');
+const { route, HttpError, query, parseId, requireAdmin } = require('../../lib/core');
 const { TRANSFER_COLUMNS, TRANSFER_ORIGINAL_FIELDS, MAX_ATTACHMENTS, parseTransfer, parseCompletion, parseCopy, parseAttachments, parseOriginal, originalSql } = require('../../lib/core');
 const { assertInvoiceFree, resolveOutlet, transferCounts } = require('../../lib/core');
 
@@ -148,6 +148,7 @@ module.exports = route(['PUT', 'PATCH', 'DELETE'], async function (req) {
     }
 
     if (action === 'detach') {
+      requireAdmin(req);
       const url = String(body.url || '');
       if (!url || url.length > 600) throw new HttpError(400, 'Which attachment?');
       const rows = await query(
@@ -163,6 +164,7 @@ module.exports = route(['PUT', 'PATCH', 'DELETE'], async function (req) {
     throw new HttpError(400, 'Unknown action.');
   }
 
+  requireAdmin(req);
   const rows = await query(`DELETE FROM transfers WHERE id = $1 AND status = 'PENDING' RETURNING id`, [id]);
   if (!rows.length) throw await whyNot(id, 'PENDING');
   return Object.assign({ success: true }, await transferCounts());
