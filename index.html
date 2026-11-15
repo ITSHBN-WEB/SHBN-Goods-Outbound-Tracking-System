@@ -701,7 +701,8 @@
     .tr-ok { margin:0 0 14px; padding:11px 14px; border-radius:10px; color:#75efc5; background:rgba(32,214,162,.10); border:1px solid rgba(32,214,162,.28); font-size:14px; }
     .td-top { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:14px; padding-bottom:10px; border-bottom:1px solid rgba(148,163,184,.16); }
     .td-top h2 { font-size:22px; color:#eef6ff; overflow-wrap:anywhere; }
-    .td-top .bk-small { margin-left:auto; }
+    .td-actions { margin-left:auto; display:flex; gap:8px; flex-wrap:wrap; }
+    @media (max-width:560px) { .td-actions { width:100%; margin-left:0; } .td-actions button { flex:1; } }
     .td-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:14px 24px; }
     .td-grid .it span { display:block; color:#8393aa; font-size:11.5px; letter-spacing:.5px; text-transform:uppercase; margin-bottom:3px; }
     .td-grid .it b { color:#eef4ff; font-size:15.5px; font-weight:700; overflow-wrap:anywhere; }
@@ -1429,13 +1430,13 @@
         <div class="td-top">
           <h2 id="td_title" style="border:0;margin:0;padding:0;"></h2>
           <span class="pending-badge" id="td_badge">PENDING</span>
-          <button type="button" class="btn-secondary bk-small" id="td_editBtn">Edit</button>
+          <div class="td-actions">
+            <button type="button" class="btn-secondary bk-small" id="td_printBtn">&#128424; Print TPL</button>
+            <button type="button" class="btn-secondary bk-small" id="td_editBtn">Edit</button>
+            <button type="button" class="btn-danger bk-small" id="td_deleteBtn">Delete</button>
+          </div>
         </div>
         <div class="td-grid" id="td_grid"></div>
-        <div class="btn-row" style="margin-top:16px;">
-          <button class="btn-secondary" id="td_printBtn" type="button">&#128424; Print TPL</button>
-          <button class="btn-danger" id="td_deleteBtn" type="button">Delete</button>
-        </div>
       </div>
 
       <div class="card" id="td_attCard">
@@ -3720,8 +3721,8 @@
       if (!pend) extra += it('DO No', t.doNo) + it('Pickup Date', t.pickupDate ? fmtDateLong(t.pickupDate) : '') + it('Updated By', t.updatedBy);
       if (done) extra += it('Copy-Document Returned', t.copyReturnedDate ? fmtDateLong(t.copyReturnedDate) : '') + it('Submitted By', t.copySubmittedBy) + it('Completed', t.dateCopyUpdated);
       $id('td_grid').innerHTML = trGridHtml_(t, extra);
-      $id('td_editBtn').style.display = pend ? '' : 'none';
-      $id('td_deleteBtn').style.display = (pend && isAdmin_()) ? '' : 'none';
+      $id('td_editBtn').style.display = (pend || (wait && isAdmin_())) ? '' : 'none';
+      $id('td_deleteBtn').style.display = ((pend || wait) && isAdmin_()) ? '' : 'none';
       renderTdAttachments_(t); $id('td_attFile').value = ''; $id('td_attInfo').textContent = ''; $id('td_attInfo').className = 'att-info';
 
       // card 1: DO No + pickup date
@@ -3832,7 +3833,7 @@
       if (!confirm('Delete ' + t.invoiceNo + '? This cannot be undone.')) return;
       var btn = this; btn.disabled = true;
       api_('DELETE', '/api/transfers/' + t.id).then(function () {
-        btn.disabled = false; goPending_('Deleted ' + t.invoiceNo + '.');
+        btn.disabled = false; (t.status === 'AWAITING_COPY' ? goAwait_ : goPending_)('Deleted ' + t.invoiceNo + '.');
       }).catch(function (err) { btn.disabled = false; if (err && err.code === 'ADMIN_REQUIRED') adminOff_(); trStatus_('td_status', 'error', err && err.message ? err.message : 'Could not delete.'); });
     });
 
@@ -3905,18 +3906,19 @@
         btn.disabled = false; btn.textContent = 'Save Changes';
         closeTrEdit(); openTrDetail(res.item, trFromFind);
         showStatus('statusBanner', 'ok', 'Saved changes to ' + res.item.invoiceNo + '.');
-        loadTrPending();
+        if (res.item.status === 'AWAITING_COPY') loadTrAwait(); else loadTrPending();
       }).catch(function (err) {
         btn.disabled = false; btn.textContent = 'Save Changes';
         if (err && err.code === 'CHANGED') {
           var id = t.id; closeTrEdit();
-          loadTrPending().then(function () {
-            var fresh = trPending.filter(function (x) { return x.id === id; })[0];
+          (t.status === 'AWAITING_COPY' ? loadTrAwait() : loadTrPending()).then(function () {
+            var fresh = (t.status === 'AWAITING_COPY' ? trAwaiting : trPending).filter(function (x) { return x.id === id; })[0];
             if (fresh) openTrDetail(fresh, trFromFind);
             showStatus('statusBanner', 'error', err.message);
           });
           return;
         }
+        if (err && err.code === 'ADMIN_REQUIRED') adminOff_();
         fail(err && err.message ? err.message : 'Could not save. Please try again.');
       });
     });
@@ -4242,7 +4244,9 @@
       $id('ad_in').style.display = on ? 'block' : 'none';
       if (isVisible_('trDetailScreen') && trCurrent) {
         renderTdAttachments_(trCurrent);
-        $id('td_deleteBtn').style.display = (trCurrent.status === 'PENDING' && on) ? '' : 'none';
+        var st = trCurrent.status;
+        $id('td_deleteBtn').style.display = ((st === 'PENDING' || st === 'AWAITING_COPY') && on) ? '' : 'none';
+        $id('td_editBtn').style.display = (st === 'PENDING' || (st === 'AWAITING_COPY' && on)) ? '' : 'none';
       }
     }
     function adminOff_() { adminPin_ = ''; applyAdmin_(); }

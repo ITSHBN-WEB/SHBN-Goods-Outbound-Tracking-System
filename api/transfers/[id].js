@@ -1,4 +1,4 @@
-// PUT    /api/transfers/:id  edit a PENDING transfer   body { transferTo, outletCode, invoiceNo, department, transferDate, totalCarton, remark, original }
+// PUT    /api/transfers/:id  edit a PENDING transfer (an AWAITING_COPY one too, admin only)   body { transferTo, outletCode, invoiceNo, department, transferDate, totalCarton, remark, original }
 // PATCH  /api/transfers/:id  body { action, ... }
 //   complete = step 1: PENDING -> AWAITING_COPY       { doNo, pickupDate, updatedBy, attachments? }
 //   copy     = step 2: AWAITING_COPY -> COMPLETED     { copyReturnedDate, copySubmittedBy, attachments? }
@@ -9,7 +9,7 @@
 //              { from: 'AWAITING_COPY' } -> PENDING (DO No / pickup date cleared)
 //   attach   = add attachments in any status          { attachments: [{url,name,type}] }
 //   detach   = remove one attachment in any status    { url }   (admin only: X-Admin-Pin header)
-// DELETE /api/transfers/:id  only while PENDING, admin only
+// DELETE /api/transfers/:id  while PENDING or AWAITING_COPY, admin only
 // Every change checks the row's current state inside the SQL itself, so two people acting at once cannot both win.
 const { route, HttpError, query, parseId, requireAdmin } = require('../../lib/core');
 const { TRANSFER_COLUMNS, TRANSFER_ORIGINAL_FIELDS, MAX_ATTACHMENTS, parseTransfer, parseCompletion, parseCopy, parseAttachments, parseOriginal, originalSql } = require('../../lib/core');
@@ -38,7 +38,9 @@ module.exports = route(['PUT', 'PATCH', 'DELETE'], async function (req) {
   if (req.method === 'PUT') {
     const t = parseTransfer(req.body);
     const original = parseOriginal(req.body, TRANSFER_ORIGINAL_FIELDS);
-    const cur = await query('SELECT invoice_no FROM transfers WHERE id = $1', [id]);
+    const cur = await query('SELECT invoice_no, status FROM transfers WHERE id = $1', [id]);
+    const expected = cur.length && cur[0].status === 'AWAITING_COPY' ? 'AWAITING_COPY' : 'PENDING';
+    if (expected === 'AWAITING_COPY') requireAdmin(req);       // only an admin may change a transfer that has already left Pending
     if (cur.length && String(cur[0].invoice_no).trim().toUpperCase() !== t.invoiceNo.trim().toUpperCase()) {
       await assertInvoiceFree(t.invoiceNo, id);
     }
@@ -48,16 +50,16 @@ module.exports = route(['PUT', 'PATCH', 'DELETE'], async function (req) {
     const rows = await query(
       `UPDATE transfers
           SET transfer_to = $1, outlet_code = $2, invoice_no = $3, department = $4, transfer_date = $5, total_carton = $6, remark = $7
-        WHERE id = $8 AND status = 'PENDING'${original ? originalSql(9, TRANSFER_ORIGINAL_FIELDS) : ''}
+        WHERE id = $8 AND status = '${expected}'${original ? originalSql(9, TRANSFER_ORIGINAL_FIELDS) : ''}
         RETURNING ${TRANSFER_COLUMNS}`,
       params
     );
     if (!rows.length) {
       const now = await query('SELECT status FROM transfers WHERE id = $1', [id]);
-      if (now.length && now[0].status === 'PENDING') {
+      if (now.length && now[0].status === expected) {
         throw new HttpError(409, 'Someone else changed this transfer while you were editing it. Their changes are kept; the latest version has been loaded - please re-apply your edit.', 'CHANGED');
       }
-      throw await whyNot(id, 'PENDING');
+      throw await whyNot(id, expected);
     }
     return await withCounts(rows[0]);
   }
@@ -165,7 +167,7 @@ module.exports = route(['PUT', 'PATCH', 'DELETE'], async function (req) {
   }
 
   requireAdmin(req);
-  const rows = await query(`DELETE FROM transfers WHERE id = $1 AND status = 'PENDING' RETURNING id`, [id]);
+  const rows = await query(`DELETE FROM transfers WHERE id = $1 AND status IN ('PENDING', 'AWAITING_COPY') RETURNING id`, [id]);
   if (!rows.length) throw await whyNot(id, 'PENDING');
   return Object.assign({ success: true }, await transferCounts());
 });
