@@ -9,6 +9,27 @@ const { RETURN_COLUMNS, pendingCount } = require('../../lib/core');
 
 module.exports = route(['GET', 'POST', 'PATCH'], async function (req) {
   if (req.method === 'GET') {
+    // ?status=done  -> every return that has been picked up / disposed / otherwise completed (newest update first)
+    if (req.query.status === 'done') {
+      const params = [];
+      let where = "status <> 'PENDING'";
+      const needle = String(req.query.q || '').trim().slice(0, 80);
+      if (needle) {
+        params.push('%' + needle.replace(/[\\%_]/g, '\\$&') + '%');
+        where += ' AND (rpo_no ILIKE $1 OR supplier ILIKE $1 OR brand ILIKE $1 OR COALESCE(updated_by, \'\') ILIKE $1)';
+      }
+      const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 200, 1), 500);
+      return await query(`
+        SELECT ${RETURN_COLUMNS},
+               pickup_date::text AS "pickupDate",
+               COALESCE(to_char(pickup_date, 'FMDD.FMMM.YYYY'), '') AS "pickupDateDisplay",
+               updated_by AS "updatedBy",
+               to_char(updated_at AT TIME ZONE 'Asia/Kuala_Lumpur', 'FMDD.FMMM.YYYY FMHH12.MIPM') AS "dateUpdated"
+          FROM returns
+         WHERE ${where}
+         ORDER BY updated_at DESC NULLS LAST, id DESC
+         LIMIT ${limit}`, params);
+    }
     return await query(`
       SELECT ${RETURN_COLUMNS}
       FROM returns

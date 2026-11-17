@@ -883,6 +883,7 @@
       <button type="button" class="side-link active" id="navDashboard"><span class="nav-icon">▦</span><span>Dashboard</span></button>
       <button type="button" class="side-link" id="navNewReturn"><span class="nav-icon">＋</span><span>New Supplier Return</span></button>
       <button type="button" class="side-link" id="navUpdateReturn"><span class="nav-icon">↻</span><span>Pending Return</span></button>
+      <button type="button" class="side-link" id="navPickedUp"><span class="nav-icon">&#128666;</span><span>Picked Up Return</span></button>
       <button type="button" class="side-link" id="navSummary"><span class="nav-icon">▤</span><span>Summary Report</span></button>
       <div class="side-group">GOODS TRANSFER</div><div class="side-group-gap" style="display:none;"></div>
       <button type="button" class="side-link" id="navTrFind"><span class="nav-icon">&#128269;</span><span>Find Transfer</span></button>
@@ -1530,6 +1531,19 @@
     </div>
 
     <!-- ============ UPDATE RETURN: LIST ============ -->
+    <div id="pickedUpScreen" style="display:none;">
+      <span class="back-link" id="pk_back">&larr; Back</span>
+      <div class="card">
+        <h2>Picked Up Return (<span id="pk_count">0</span>)</h2>
+        <p class="bk-help" style="margin-top:0;">Every return that has been completed (Returned, Disposed or Others), newest update first. Tap a record for its details.</p>
+        <div class="field" style="margin-bottom:10px;"><input type="text" id="pk_search" placeholder="Search RPO No, supplier, brand or updated by" autocomplete="off"></div>
+        <button type="button" class="btn-secondary bk-small" id="pk_clearSearch">Clear</button>
+        <div id="pk_list" style="margin-top:14px;"></div>
+        <div class="list-empty" id="pk_empty" style="display:none;">No completed returns found.</div>
+        <div id="pk_note" class="bk-help" style="display:none;">Showing the latest 200 - type in the search box to find older ones.</div>
+      </div>
+    </div>
+
     <div id="updateListScreen" style="display:none;">
       <span class="back-link" id="backFromUpdateList">&larr; Back</span>
 
@@ -2138,6 +2152,7 @@
             }
           }
           if (summaryRan && isVisible_('summaryScreen') && (changed || opts.force)) document.getElementById('sr_runBtn').click();
+          if (isVisible_('pickedUpScreen') && typeof loadPickedUp_ === 'function') loadPickedUp_(true);
           loadDashTransfers_(true);
           if (typeof refreshTransfers_ === 'function' && isTrScreenVisible_()) refreshTransfers_(opts.force).catch(function () {});
           stamp.classList.remove('err');
@@ -2194,7 +2209,7 @@
 
     // ---------- Navigation ----------
     function setActiveNav(id) {
-      ['navDashboard', 'navNewReturn', 'navUpdateReturn', 'navSummary', 'navTrFind', 'navTrNew', 'navTrPending', 'navTrAwait', 'navTrCompleted', 'navTrSummary', 'navAdmin'].forEach(function (navId) {
+      ['navDashboard', 'navNewReturn', 'navUpdateReturn', 'navPickedUp', 'navSummary', 'navTrFind', 'navTrNew', 'navTrPending', 'navTrAwait', 'navTrCompleted', 'navTrSummary', 'navAdmin'].forEach(function (navId) {
         var el = document.getElementById(navId);
         if (el) el.classList.toggle('active', navId === id);
       });
@@ -2203,7 +2218,7 @@
     }
 
     function showScreen(id) {
-      ['homeScreen', 'adminScreen', 'newReturnScreen', 'updateListScreen', 'updateDetailScreen', 'bulkReviewScreen', 'summaryScreen',
+      ['homeScreen', 'adminScreen', 'pickedUpScreen', 'newReturnScreen', 'updateListScreen', 'updateDetailScreen', 'bulkReviewScreen', 'summaryScreen',
        'trFindScreen', 'trNewScreen', 'trResultScreen', 'trLabelScreen', 'trPendingScreen', 'trBulkReviewScreen', 'trAwaitScreen', 'trAwaitBulkReviewScreen', 'trDetailScreen', 'trCompletedScreen', 'trSummaryScreen'].forEach(function (s) {
         document.getElementById(s).style.display = (s === id) ? 'block' : 'none';
       });
@@ -2212,6 +2227,7 @@
       else if (id === 'updateListScreen' || id === 'updateDetailScreen' || id === 'bulkReviewScreen') setActiveNav('navUpdateReturn');
       else if (id === 'summaryScreen') setActiveNav('navSummary');
       else if (id === 'adminScreen') setActiveNav('navAdmin');
+      else if (id === 'pickedUpScreen') setActiveNav('navPickedUp');
       else if (id === 'trFindScreen') setActiveNav('navTrFind');
       else if (id === 'trNewScreen' || id === 'trResultScreen') setActiveNav('navTrNew');
       else if (id === 'trPendingScreen' || id === 'trBulkReviewScreen' || id === 'trDetailScreen') setActiveNav('navTrPending');
@@ -4274,6 +4290,51 @@
     $id('ad_logoutBtn').addEventListener('click', function () { adminOff_(); });
     $id('ad_back').addEventListener('click', function () { showScreen('homeScreen'); });
     $id('navAdmin').addEventListener('click', function () { trNav_('adminScreen'); applyAdmin_(); if (!isAdmin_()) { try { $id('ad_pass').focus(); } catch (e) {} } });
+
+    // ---------- Picked Up Return (completed returns, read-only) ----------
+    var pkItems = [], pkSig = '', pkTimer, pkSeq = 0;
+    function pkRender_() {
+      var q = $id('pk_search').value.trim();
+      $id('pk_count').textContent = pkItems.length;
+      $id('pk_empty').style.display = pkItems.length ? 'none' : 'block';
+      $id('pk_note').style.display = (!q && pkItems.length >= 200) ? 'block' : 'none';
+      var it = function (l, v) { return '<div class="it"><span>' + l + '</span><b>' + escapeHtml(v || '—') + '</b></div>'; };
+      $id('pk_list').innerHTML = pkItems.map(function (r) {
+        var qty = [r.totalItem !== null && r.totalItem !== '' ? r.totalItem + ' item' + (Number(r.totalItem) === 1 ? '' : 's') : '', r.totalCarton !== null && r.totalCarton !== '' ? r.totalCarton + ' ctn' : ''].filter(Boolean).join(' · ');
+        return '<div class="pk-wrap" data-id="' + escapeHtml(r.id) + '">' +
+          '<div class="pending-item pk-item" style="cursor:pointer;"><div><div class="rpo">' + escapeHtml(r.rpoNo) + '</div>' +
+          '<div class="meta">' + escapeHtml(r.supplier) + ' &middot; ' + escapeHtml(r.brand) + '</div>' +
+          '<div class="meta">' + (r.pickupDateDisplay ? 'Picked up ' + escapeHtml(r.pickupDateDisplay) : 'Updated ' + escapeHtml(r.dateUpdated || '')) + (r.updatedBy ? ' &middot; by ' + escapeHtml(r.updatedBy) : '') + '</div></div>' +
+          '<span class="pending-badge done-badge">' + escapeHtml(r.status) + '</span></div>' +
+          '<div class="pk-more" style="display:none;"><div class="td-grid" style="padding:14px 4px 6px;">' +
+          it('Supplier', r.supplier) + it('Brand', r.brand) + it('Department', r.department) + it('RPO Date', r.rpoDateDisplay) +
+          it('Quantity', qty) + it('Reason', r.reason) + it('Remark', r.remark) + it('Entered', r.dateSubmitted) + it('Entered By', r.submittedBy) +
+          it('Status', r.status) + it('Pickup Date', r.pickupDateDisplay) + it('Updated By', r.updatedBy) + it('Updated', r.dateUpdated) +
+          '</div></div></div>';
+      }).join('');
+    }
+    function loadPickedUp_(quiet) {
+      var q = $id('pk_search').value.trim(), seq = ++pkSeq;
+      return api_('GET', '/api/returns?status=done&limit=200' + (q ? '&q=' + encodeURIComponent(q) : '')).then(function (list) {
+        if (seq !== pkSeq) return;
+        var sig = JSON.stringify(list);
+        if (quiet && sig === pkSig) return;
+        var open = {}; Array.prototype.forEach.call(document.querySelectorAll('#pk_list .pk-more'), function (m) { if (m.style.display !== 'none') open[m.parentNode.getAttribute('data-id')] = true; });
+        pkSig = sig; pkItems = list; pkRender_();
+        Array.prototype.forEach.call(document.querySelectorAll('#pk_list .pk-wrap'), function (w) { if (open[w.getAttribute('data-id')]) w.querySelector('.pk-more').style.display = 'block'; });
+      }).catch(function (err) {
+        if (seq !== pkSeq || quiet) return;
+        showStatus('statusBanner', 'error', err && err.message ? err.message : 'Could not load the list. Please try again.');
+      });
+    }
+    $id('pk_search').addEventListener('input', function () { clearTimeout(pkTimer); pkTimer = setTimeout(function () { loadPickedUp_(); }, 300); });
+    $id('pk_clearSearch').addEventListener('click', function () { $id('pk_search').value = ''; loadPickedUp_(); $id('pk_search').focus(); });
+    $id('pk_list').addEventListener('click', function (e) {
+      var item = e.target.closest && e.target.closest('.pk-item'); if (!item) return;
+      var more = item.parentNode.querySelector('.pk-more'); more.style.display = more.style.display === 'none' ? 'block' : 'none';
+    });
+    $id('pk_back').addEventListener('click', function () { showScreen('homeScreen'); });
+    $id('navPickedUp').addEventListener('click', function () { showScreen('pickedUpScreen'); pkSig = ''; loadPickedUp_(); });
 
     // ---------- sidebar navigation ----------
     $id('navTrNew').addEventListener('click', function () { trNav_('trNewScreen'); });

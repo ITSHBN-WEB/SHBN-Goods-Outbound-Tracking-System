@@ -47,3 +47,6 @@ API: `GET/POST/PATCH /api/transfers`, `PUT/PATCH/DELETE /api/transfers/:id`, `PO
 
 ## Admin Access
 Sidebar > SYSTEM > Admin Access. Logging in (default password `8888`) lets that one device remove attachments, edit Awaiting Copy-Document transfers, and delete Pending / Awaiting transfers; the green "ADMIN ACCESS" tag shows under the Refresh button. The login lives only in the page's memory, so refreshing or closing the page ends it, and other devices are not affected. The server checks the password on every remove/delete request. To change the password, set the Vercel environment variable `ADMIN_PIN` and redeploy.
+
+## Picked Up Return
+Sidebar > Picked Up Return lists every completed supplier return (Returned, Disposed or Others), newest update first, with search (RPO No, supplier, brand, updated by). Tap a record to see its details. It is read-only; the latest 200 are shown, search finds older ones.
