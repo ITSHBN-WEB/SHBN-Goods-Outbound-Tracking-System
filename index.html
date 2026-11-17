@@ -2570,7 +2570,8 @@
         div.className = 'pending-item';
         div.innerHTML =
           '<div><div class="rpo">' + escapeHtml(item.rpoNo) + '</div>' +
-          '<div class="meta">' + escapeHtml(item.supplier) + ' &middot; ' + escapeHtml(item.brand) + '</div></div>' +
+          '<div class="meta">' + escapeHtml(item.supplier) + ' &middot; ' + escapeHtml(item.brand) + '</div>' +
+          (item.dateSubmitted ? '<div class="meta">Entered ' + escapeHtml(item.dateSubmitted) + '</div>' : '') + '</div>' +
           '<span class="pending-badge">PENDING</span>';
         div.addEventListener('click', function () { openDetail(item); });
         wrap.appendChild(div);

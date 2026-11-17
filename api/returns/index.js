@@ -13,7 +13,7 @@ module.exports = route(['GET', 'POST', 'PATCH'], async function (req) {
       SELECT ${RETURN_COLUMNS}
       FROM returns
       WHERE status = 'PENDING'
-      ORDER BY id ASC`);
+      ORDER BY submitted_at DESC NULLS LAST, id DESC`);      // newest entry first
   }
 
   if (req.method === 'PATCH') {
