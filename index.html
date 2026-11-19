@@ -739,6 +739,7 @@
     .ts-table th { text-align:left; padding:9px 8px; color:#8393aa; font-size:11.5px; letter-spacing:.4px; text-transform:uppercase; border-bottom:1px solid rgba(148,163,184,.25); white-space:nowrap; }
     .ts-table td { padding:9px 8px; color:#e8edf7; border-bottom:1px solid rgba(148,163,184,.12); vertical-align:top; }
     .ts-table td a { color:#22d3ee; }
+    .ts-table td.rm { white-space:normal; min-width:170px; max-width:340px; overflow-wrap:anywhere; }
     .ts-table .num { text-align:right; }
     .ts-st-w { color:#8fd3ff; } .ts-st-p { color:#ffd98a; } .ts-st-c { color:#75efc5; }
     /* carton label (TPL to Outlet) - same layout as the standalone label generator */
@@ -764,7 +765,11 @@
     }
     #tplPrintRoot .tpl-flow .tpl-label:last-child { break-after:auto !important; page-break-after:auto !important; }
     #tplPrintRoot .ts-table th, #tplPrintRoot .ts-table td { color:#000; border-bottom:1px solid #999; font-size:10.5px; padding:4px 5px; }
-    #tplPrintRoot .ts-table th { color:#000; }
+    #tplPrintRoot .ts-table { table-layout:fixed; width:100%; }
+    #tplPrintRoot .ts-table th { color:#000; white-space:normal; vertical-align:bottom; }
+    #tplPrintRoot .ts-table td { white-space:normal; overflow-wrap:anywhere; word-break:break-word; }
+    #tplPrintRoot .ts-table td.rm { min-width:0; max-width:none; }
+    #tplPrintRoot .ts-table tr { break-inside:avoid; page-break-inside:avoid; }
     #tplPrintRoot h1 { font:700 16px Arial,sans-serif; margin:0 0 4px; color:#000; }
     #tplPrintRoot p { font:12px Arial,sans-serif; margin:0 0 10px; color:#000; }
     @media print {
@@ -4114,13 +4119,13 @@
       }).catch(function (err) { setBusy_(btn, null, false, 'Run'); alert(err && err.message ? err.message : 'Could not load the report.'); });
     });
     function tsTableHtml_(cls) {
-      return '<table class="ts-table"><thead><tr><th>#</th><th>Invoice / ODO No</th><th>Transfer To</th><th>Dept</th><th>Date</th><th class="num">Ctn</th><th>Remark</th><th>Status</th><th>DO No</th><th>Pickup</th><th>Updated By</th><th>Copy Returned</th><th>Submitted By</th><th>Attach</th></tr></thead><tbody>' +
+      var cg = cls === 'print' ? '<colgroup>' + [2.5, 9.5, 14, 9.5, 6.5, 3, 14.5, 8.5, 6, 6.5, 6.5, 6.5, 6.5].map(function (w) { return '<col style="width:' + w + '%">'; }).join('') + '</colgroup>' : '';
+      return '<table class="ts-table">' + cg + '<thead><tr><th>#</th><th>Invoice / ODO No</th><th>Transfer To</th><th>Dept</th><th>Date</th><th class="num">Ctn</th><th>Remark</th><th>Status</th><th>DO No</th><th>Pickup</th><th>Updated By</th><th>Copy Returned</th><th>Submitted By</th></tr></thead><tbody>' +
         tsRows.map(function (t, i) {
-          var done = t.status === 'COMPLETED', wait = t.status === 'AWAITING_COPY', atts = t.attachments || [];
-          return '<tr><td>' + (i + 1) + '</td><td>' + escapeHtml(t.invoiceNo) + '</td><td>' + escapeHtml(t.transferTo) + '</td><td>' + escapeHtml(t.department) + '</td><td>' + escapeHtml(tplDate_(t.transferDate)) + '</td><td class="num">' + escapeHtml(t.totalCarton) + '</td><td>' + escapeHtml(t.remark || '') + '</td>' +
+          var done = t.status === 'COMPLETED', wait = t.status === 'AWAITING_COPY';
+          return '<tr><td>' + (i + 1) + '</td><td>' + escapeHtml(t.invoiceNo) + '</td><td>' + escapeHtml(t.transferTo) + '</td><td>' + escapeHtml(t.department) + '</td><td>' + escapeHtml(tplDate_(t.transferDate)) + '</td><td class="num">' + escapeHtml(t.totalCarton) + '</td><td class="rm">' + escapeHtml(t.remark || '') + '</td>' +
             '<td class="' + (done ? 'ts-st-c' : wait ? 'ts-st-w' : 'ts-st-p') + '">' + (done ? 'Completed' : wait ? 'Awaiting Copy-Document' : 'Pending') + '</td><td>' + escapeHtml(t.doNo || '') + '</td><td>' + escapeHtml(tplDate_(t.pickupDate)) + '</td><td>' + escapeHtml(t.updatedBy || '') + '</td>' +
-            '<td>' + escapeHtml(tplDate_(t.copyReturnedDate)) + '</td><td>' + escapeHtml(t.copySubmittedBy || '') + '</td>' +
-            '<td>' + (atts.length ? (cls === 'print' ? String(atts.length) : atts.map(function (a, k) { return '<a href="' + escapeHtml(a.url) + '" target="_blank" rel="noopener">' + (k + 1) + '</a>'; }).join(' ')) : '') + '</td></tr>';
+            '<td>' + escapeHtml(tplDate_(t.copyReturnedDate)) + '</td><td>' + escapeHtml(t.copySubmittedBy || '') + '</td></tr>';
         }).join('') + '</tbody></table>';
     }
     function tsTotalsText_() {
