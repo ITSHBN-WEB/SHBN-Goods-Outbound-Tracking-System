@@ -4,13 +4,15 @@
 // DELETE /api/returns/:id
 // Both only act on rows that are still PENDING (checked inside the SQL itself, so two people
 // clicking at once cannot both win).
-const { route, HttpError } = require('../../lib/core');
+const { route, HttpError, scopeOf, assertOwn, audit } = require('../../lib/core');
 const { query } = require('../../lib/core');
 const { parseId, parseUpdate, parseEntry, resolveSupplierCodes, assertRpoFree, parseOriginal, originalSql, RETURN_COLUMNS } = require('../../lib/core');
 const { pendingCount } = require('../../lib/core');
 
 module.exports = route(['PUT', 'PATCH', 'DELETE'], async function (req) {
   const id = parseId(req.query.id);
+  await assertOwn('returns', id, req);          // an Outlet account can only reach its own records
+  const scope = scopeOf(req);
 
   if (req.method === 'PUT') {
     const e = parseEntry(req.body, 0);
@@ -39,7 +41,17 @@ module.exports = route(['PUT', 'PATCH', 'DELETE'], async function (req) {
       }
       throw new HttpError(409, 'This item is no longer pending (someone else may have already updated it). Please refresh the list.', 'NOT_PENDING');
     }
-    return { success: true, item: rows[0], pendingCount: await pendingCount() };
+    return { success: true, item: rows[0], pendingCount: await pendingCount(scope) };
+  }
+
+  if (req.method === 'PATCH' && req.body && req.body.action === 'revert') {      // Management only: a completed return goes back to Pending
+    if (req.user.category !== 'MANAGEMENT') throw new HttpError(403, 'Only Management can revert a completed return.', 'FORBIDDEN');
+    const rows = await query(
+      `UPDATE returns SET status = 'PENDING', pickup_date = NULL, updated_by = NULL, updated_at = NULL
+        WHERE id = $1 AND status <> 'PENDING' RETURNING rpo_no, supplier, origin`, [id]);
+    if (!rows.length) throw new HttpError(409, 'This item is already pending. Please refresh the list.');
+    await audit(req, 'REVERT', 'RETURN', rows[0].rpo_no, rows[0].supplier + ' / back to Pending', null, rows[0].origin);
+    return { success: true, pendingCount: await pendingCount(scope) };
   }
 
   if (req.method === 'PATCH') {
@@ -54,12 +66,16 @@ module.exports = route(['PUT', 'PATCH', 'DELETE'], async function (req) {
     if (!rows.length) {
       throw new HttpError(409, 'This item is no longer pending (someone else may have already updated it). Please refresh the list.');
     }
-    return { success: true, pendingCount: await pendingCount() };
+    return { success: true, pendingCount: await pendingCount(scope) };
   }
 
-  const rows = await query(`DELETE FROM returns WHERE id = $1 AND status = 'PENDING' RETURNING id`, [id]);
+  const rows = await query(
+    `WITH d AS (DELETE FROM returns WHERE id = $1 AND status = 'PENDING' RETURNING *)
+     INSERT INTO audit_log (actor, action, kind, ref, detail, snapshot, origin)
+     SELECT $2, 'DELETE', 'RETURN', rpo_no, supplier || ' / ' || status, to_jsonb(d), origin FROM d RETURNING id`,
+    [id, req.user.loginId]);
   if (!rows.length) {
     throw new HttpError(409, 'This item is no longer pending and cannot be deleted. Please refresh the list.');
   }
-  return { success: true, pendingCount: await pendingCount() };
+  return { success: true, pendingCount: await pendingCount(scope) };
 });

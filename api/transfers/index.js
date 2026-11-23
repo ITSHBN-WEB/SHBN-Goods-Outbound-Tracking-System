@@ -5,7 +5,7 @@
 // PATCH /api/transfers   bulk update, body { ids:[...], ... }
 //         step 1 (default / action:'complete'): { doNo, pickupDate, updatedBy, attachments? }   PENDING -> AWAITING_COPY
 //         step 2 (action:'copy'):               { copyReturnedDate, copySubmittedBy, attachments? }   AWAITING_COPY -> COMPLETED
-const { route, HttpError, query, requireAdmin } = require('../../lib/core');
+const { route, HttpError, query, scopeOf, writeOrigin, ownedIds } = require('../../lib/core');
 const { TRANSFER_COLUMNS, parseTransfer, parseBulkTransfers, MAX_ATTACHMENTS, assertInvoiceFree, resolveOutlet, transferCounts } = require('../../lib/core');
 
 function dateParam(v, label) {
@@ -17,15 +17,15 @@ function dateParam(v, label) {
 module.exports = route(['GET', 'POST', 'PATCH'], async function (req) {
   if (req.method === 'GET') {
     const q = req.query || {};
-    if (q.view === 'admin') { requireAdmin(req); return { success: true }; }      // admin log-in check
     if (q.view === 'outlets') {
       return await query('SELECT code, name FROM outlets WHERE active ORDER BY name, code');
     }
+    const scope = scopeOf(req);
     if (q.view === 'dashboard') {         // dashboard card: pending count + the 6 most recently submitted / completed transfers
       const [counts, recent] = await Promise.all([
-        transferCounts(),
-        query(`SELECT ${TRANSFER_COLUMNS} FROM transfers
-                ORDER BY GREATEST(created_at, COALESCE(updated_at, created_at), COALESCE(copy_updated_at, created_at)) DESC, id DESC LIMIT 6`)
+        transferCounts(scope),
+        query(`SELECT ${TRANSFER_COLUMNS} FROM transfers WHERE ($1::text IS NULL OR origin = $1)
+                ORDER BY GREATEST(created_at, COALESCE(updated_at, created_at), COALESCE(copy_updated_at, created_at)) DESC, id DESC LIMIT 6`, [scope])
       ]);
       return Object.assign({ recent }, counts);
     }
@@ -33,6 +33,7 @@ module.exports = route(['GET', 'POST', 'PATCH'], async function (req) {
     if (['PENDING', 'AWAITING_COPY', 'COMPLETED', 'ALL'].indexOf(status) === -1) throw new HttpError(400, 'Invalid status.');
     const from = dateParam(q.from, 'From date'), to = dateParam(q.to, 'To date');
     const where = [], params = [];
+    if (scope) { params.push(scope); where.push('origin = $' + params.length); }
     if (status !== 'ALL') { params.push(status); where.push('status = $' + params.length); }
     if (from) { params.push(from); where.push('transfer_date >= $' + params.length + '::date'); }
     if (to) { params.push(to); where.push('transfer_date <= $' + params.length + '::date'); }
@@ -55,20 +56,23 @@ module.exports = route(['GET', 'POST', 'PATCH'], async function (req) {
   }
 
   if (req.method === 'POST') {
+    const origin = writeOrigin(req);
     const t = parseTransfer(req.body);
     await assertInvoiceFree(t.invoiceNo);
     await resolveOutlet(t);
     const rows = await query(
-      `INSERT INTO transfers (transfer_to, outlet_code, invoice_no, department, transfer_date, total_carton, remark)
-       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING ${TRANSFER_COLUMNS}`,
-      [t.transferTo, t.outletCode, t.invoiceNo, t.department, t.transferDate, t.totalCarton, t.remark]
+      `INSERT INTO transfers (transfer_to, outlet_code, invoice_no, department, transfer_date, total_carton, remark, origin)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING ${TRANSFER_COLUMNS}`,
+      [t.transferTo, t.outletCode, t.invoiceNo, t.department, t.transferDate, t.totalCarton, t.remark, origin]
     );
-    return Object.assign({ success: true, item: rows[0] }, await transferCounts());
+    return Object.assign({ success: true, item: rows[0] }, await transferCounts(scopeOf(req)));
   }
 
   // PATCH: bulk update. Only rows that are STILL in the expected status change; others are reported back as skipped.
   const copyStep = String((req.body && req.body.action) || '') === 'copy';
   const u = parseBulkTransfers(req.body, copyStep ? 'copy' : 'complete');
+  const asked = u.ids;
+  u.ids = await ownedIds('transfers', u.ids, req);       // ids from another outlet are simply skipped
   const att = JSON.stringify(u.attachments), n = u.attachments.length;
   const done = copyStep
     ? await query(
@@ -89,6 +93,6 @@ module.exports = route(['GET', 'POST', 'PATCH'], async function (req) {
   return Object.assign({
     success: true,
     updated: Array.from(ok),
-    skipped: u.ids.filter((id) => !ok.has(id)),
-  }, await transferCounts());
+    skipped: asked.filter((id) => !ok.has(id)),
+  }, await transferCounts(scopeOf(req)));
 });

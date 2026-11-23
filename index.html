@@ -854,9 +854,63 @@
       .m-menu-btn { height:38px; width:42px; }
     }
     @media print { .m-topbar, .m-backdrop { display:none !important; } }
-  </style>
+  
+    /* ---------- login / accounts ---------- */
+    #loginScreen { position:fixed; inset:0; z-index:1000; display:none; align-items:center; justify-content:center; padding:20px; background:radial-gradient(circle at 30% 20%,#14243a,#0b0f17 60%); overflow-y:auto; }
+    #loginScreen.open { display:flex; }
+    .lg-box { width:100%; max-width:380px; background:linear-gradient(145deg,#162030,#111a27); border:1px solid rgba(34,211,238,.32); border-radius:18px; padding:30px 26px; box-shadow:0 24px 60px rgba(0,0,0,.55); }
+    .lg-brand { text-align:center; font-size:30px; font-weight:800; letter-spacing:4px; color:#22d3ee; text-shadow:0 0 14px rgba(34,211,238,.5); }
+    .lg-sub { text-align:center; color:#91a0b7; font-size:11px; letter-spacing:2px; margin:4px 0 24px; }
+    .lg-box label { display:block; color:#c6d2e6; font-size:13px; margin-bottom:6px; }
+    .lg-pw { position:relative; }
+    .lg-pw input { padding-right:62px; }
+    .lg-show { position:absolute; right:6px; top:50%; transform:translateY(-50%); padding:6px 10px; font-size:12px; background:transparent; color:#22d3ee; border:none; cursor:pointer; }
+    #lg_err { display:none; margin:0 0 12px; padding:10px 12px; border-radius:10px; font-size:13.5px; background:rgba(239,71,111,.12); color:#ff9fb3; border:1px solid rgba(239,71,111,.4); }
+    #lg_err.info { background:rgba(34,211,238,.1); color:#9eeaf7; border-color:rgba(34,211,238,.4); }
+    .lg-box .btn-primary { width:100%; }
+    .who-chip { margin-right:auto; color:#9fb0c8; font-size:12.5px; }
+    .who-chip b { color:#22d3ee; }
+    #viewOutlet { width:auto; padding:6px 8px; font-size:12.5px; background:#0f1622; color:#e8edf7; border:1px solid rgba(148,163,184,.3); border-radius:8px; }
+    .refresh-bar { flex-wrap:wrap; }
+    @media (max-width:760px) { .who-chip { flex:1 0 100%; margin-bottom:2px; } #refreshStamp:not(.err) { display:none; } #viewOutlet { margin-right:auto; } }
+    .acc-row { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
+    .acc-btns { display:flex; gap:8px; flex-wrap:wrap; }
+    .chip { display:inline-block; padding:2px 8px; border-radius:20px; font-size:11px; font-weight:700; letter-spacing:.5px; border:1px solid rgba(148,163,184,.4); color:#c6d2e6; margin-left:6px; }
+    .chip.off { color:#ff9fb3; border-color:rgba(239,71,111,.5); }
+    .chip.on { color:#39ff88; border-color:rgba(57,255,136,.5); }
+    .au-row pre { white-space:pre-wrap; word-break:break-word; font-size:12px; color:#9fb0c8; margin:8px 0 0; }
+    body.ro #navNewReturn, body.ro #navTrNew, body.ro .metric-card-accent, body.ro #modeBulkBtn, body.ro #tpModeBulk, body.ro #awModeBulk,
+    body.ro #td_editBtn, body.ro #td_deleteBtn, body.ro #td_saveBtn, body.ro #td_copySaveBtn, body.ro #td_undoBtn, body.ro #td_undoCopyBtn, body.ro #td_revertBtn,
+    body.ro #ud_deleteBtn, body.ro #ud_updateBtn, body.ro #dt_editBtn, body.ro #fd_btnPend, body.ro #fd_btnAwait { display:none!important; }
+</style>
 </head>
 <body>
+
+  <div id="loginScreen" role="dialog" aria-label="Log in">
+    <form class="lg-box" id="lg_form" autocomplete="off">
+      <div class="lg-brand">GOTS</div>
+      <div class="lg-sub">GOODS OUTBOUND TRACKING SYSTEM</div>
+      <div id="lg_err" role="alert"></div>
+      <div class="field"><label for="lg_id">Login ID</label><input type="text" id="lg_id" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="60"></div>
+      <div class="field"><label for="lg_pw">Password</label>
+        <div class="lg-pw"><input type="password" id="lg_pw" autocomplete="off" maxlength="100"><button type="button" class="lg-show" id="lg_show">Show</button></div></div>
+      <button type="submit" class="btn-primary" id="lg_btn">Log In</button>
+    </form>
+  </div>
+
+  <div class="edit-modal" id="pwModal" role="dialog" aria-label="Change password" style="z-index:900;">
+    <div class="edit-box" style="max-width:420px;">
+      <div class="edit-head"><h3 id="pw_title">Change Password</h3><button type="button" class="edit-x" id="pw_close" aria-label="Close">&times;</button></div>
+      <div style="padding:18px 22px 22px;">
+        <p class="bk-help" id="pw_help" style="margin-top:0;">Choose a new password (6 or more characters).</p>
+        <div class="field"><label for="pw_cur">Current password</label><input type="password" id="pw_cur" autocomplete="off"></div>
+        <div class="field"><label for="pw_new">New password</label><input type="password" id="pw_new" autocomplete="off"></div>
+        <div class="field"><label for="pw_new2">Repeat new password</label><input type="password" id="pw_new2" autocomplete="off"></div>
+        <div id="pw_status"></div>
+        <button type="button" class="btn-primary" id="pw_save">Save Password</button>
+      </div>
+    </div>
+  </div>
 
   <div id="loadingOverlay">
     <div class="spinner"></div>
@@ -898,7 +952,14 @@
       <button type="button" class="side-link" id="navTrCompleted"><span class="nav-icon">✓</span><span>Completed Transfers</span></button>
       <button type="button" class="side-link" id="navTrSummary"><span class="nav-icon">≣</span><span>Transfer Summary</span></button>
       <div class="side-group">SYSTEM</div><div class="side-group-gap" style="display:none;"></div>
-      <button type="button" class="side-link" id="navAdmin"><span class="nav-icon">&#128274;</span><span>Admin Access</span></button>
+      <button type="button" class="side-link" id="navPassword"><span class="nav-icon">&#128273;</span><span>Change Password</span></button>
+      <button type="button" class="side-link" id="navLogout"><span class="nav-icon">&#9211;</span><span>Log Out</span></button>
+      <div class="side-group" id="grpMon" style="display:none;">MONITORING</div>
+      <button type="button" class="side-link" id="navDeleted" style="display:none;"><span class="nav-icon">&#128465;</span><span>Deleted Records</span></button>
+      <button type="button" class="side-link" id="navSupLog" style="display:none;"><span class="nav-icon">&#128203;</span><span>Supplier Change Log</span></button>
+      <div class="side-group" id="grpMgmt" style="display:none;">MANAGEMENT</div>
+      <button type="button" class="side-link" id="navAccounts" style="display:none;"><span class="nav-icon">&#128101;</span><span>Accounts</span></button>
+      <button type="button" class="side-link" id="navSuppliers" style="display:none;"><span class="nav-icon">&#127970;</span><span>Suppliers</span></button>
     </nav>
     <div class="sidebar-footer">
       <img class="krk-badge" alt="KRK" width="440" height="146" src="data:image/webp;base64,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">
@@ -915,11 +976,12 @@
   <div class="container" id="mainContent" style="display:none;">
 
     <div class="refresh-bar">
+      <span class="who-chip" id="whoChip"></span>
+      <select id="viewOutlet" style="display:none;" title="Which outlet's records to show" aria-label="Viewing outlet"></select>
       <span id="refreshStamp">Auto-refresh every 30s</span>
       <button type="button" id="refreshBtn" class="btn-secondary" title="Reload all data now">&#8635; Refresh</button>
     </div>
 
-    <div class="admin-badge" id="adminBadge" role="status">Admin Access</div>
 
     <div id="statusBanner"></div>
 
@@ -1178,20 +1240,45 @@
     </div>
 
     <!-- ============ GOODS TRANSFER: NEW ENTRY ============ -->
-    <div id="adminScreen" style="display:none;">
-      <span class="back-link" id="ad_back">&larr; Back</span>
+    <div id="accountsScreen" style="display:none;">
+      <span class="back-link" id="ac_back">&larr; Back</span>
       <div class="card">
-        <h2>Admin Access</h2>
-        <div id="ad_out">
-          <p class="bk-help" style="margin-top:0;">Log in as admin to remove attachments and delete pending transfers. The access is for this device only and ends when you refresh or close the page.</p>
-          <div class="field"><label for="ad_pass">Admin password</label><input type="password" id="ad_pass" autocomplete="off" placeholder="Enter admin password"></div>
-          <div id="ad_status"></div>
-          <button type="button" class="btn-primary" id="ad_loginBtn">Log In As Admin</button>
-        </div>
-        <div id="ad_in" style="display:none;">
-          <p class="bk-help" style="margin-top:0;">Admin access is on for this device. You can now remove attachments and delete pending transfers. It ends automatically when you refresh or close the page.</p>
-          <button type="button" class="btn-secondary" id="ad_logoutBtn">Log Out Of Admin</button>
-        </div>
+        <h2>Create Account</h2>
+        <p class="bk-help" style="margin-top:0;">The starting password is the short name + 1234 (for example 1020-SHXX gets SHXX1234). The person must change it at first login.</p>
+        <div class="field"><label for="ac_id">Login ID</label><input type="text" id="ac_id" autocomplete="off" maxlength="30" placeholder="e.g. 1020-SHXX"></div>
+        <div class="field"><label for="ac_name">Name</label><input type="text" id="ac_name" autocomplete="off" maxlength="80"></div>
+        <div class="field"><label for="ac_cat">Category</label><select id="ac_cat"><option value="OUTLET">Outlet</option><option value="HEAD_OFFICE">Head Office</option><option value="MANAGEMENT">Management</option></select></div>
+        <div id="ac_status"></div>
+        <button type="button" class="btn-primary" id="ac_create">Create Account</button>
+      </div>
+      <div class="card"><h2>All Accounts (<span id="ac_n">0</span>)</h2><div id="ac_list"></div></div>
+    </div>
+
+    <div id="suppliersScreen" style="display:none;">
+      <span class="back-link" id="sp_back">&larr; Back</span>
+      <div class="card">
+        <h2>Add Supplier</h2>
+        <div class="field"><label for="sp_code">Supplier code</label><input type="text" id="sp_code" autocomplete="off" maxlength="30" placeholder="e.g. TSA0000999"></div>
+        <div class="field"><label for="sp_name">Supplier name</label><input type="text" id="sp_name" autocomplete="off" maxlength="200"></div>
+        <div id="sp_status"></div>
+        <button type="button" class="btn-primary" id="sp_add">Add Supplier</button>
+      </div>
+      <div class="card">
+        <h2>Supplier List</h2>
+        <div class="field" style="margin-bottom:10px;"><input type="text" id="sp_search" placeholder="Search code or name" autocomplete="off"></div>
+        <div class="bk-help" id="sp_note"></div>
+        <div id="sp_list"></div>
+      </div>
+    </div>
+
+    <div id="auditScreen" style="display:none;">
+      <span class="back-link" id="au_back">&larr; Back</span>
+      <div class="card">
+        <h2 id="au_title">Deleted Records</h2>
+        <p class="bk-help" id="au_help" style="margin-top:0;"></p>
+        <div class="field" style="margin-bottom:10px;"><input type="text" id="au_search" placeholder="Search" autocomplete="off"></div>
+        <div class="list-empty" id="au_empty" style="display:none;">Nothing recorded yet.</div>
+        <div id="au_list"></div>
       </div>
     </div>
 
@@ -1484,6 +1571,7 @@
         <div class="progress" id="td_cprogress"><i></i></div>
         <div class="btn-row">
           <button class="btn-secondary" id="td_undoCopyBtn" type="button" style="display:none;">Back to Awaiting Copy-Document</button>
+          <button class="btn-secondary" id="td_revertBtn" type="button" style="display:none;">Revert to Pending</button>
           <button class="btn-success" id="td_copySaveBtn" type="button">Complete Transfer</button>
         </div>
       </div>
@@ -1873,20 +1961,47 @@
     var API_URL = 'https://shbn-goods-outbound-tracking-system.vercel.app';
     var API_BASE = (/github\.io$/.test(location.hostname) || location.protocol === 'file:') ? API_URL : '';
 
-    // Optional PIN (only asked for if APP_PIN is set on Vercel). Remembered on this device.
-    function getPin_() { try { return localStorage.getItem('srl_pin') || ''; } catch (e) { return ''; } }
-    function setPin_(v) { try { if (v) localStorage.setItem('srl_pin', v); else localStorage.removeItem('srl_pin'); } catch (e) {} }
+    // ---------- Session (login) ----------
+    // The token lives in sessionStorage: it belongs to this tab and is gone when the tab closes. 30 minutes without any
+    // use ends the session (checked here AND on the server). A reload after logout wipes everything held in memory.
+    var SESSION_KEY = 'gots_session', VIEW_KEY = 'gots_view', MSG_KEY = 'gots_msg', IDLE_MS = 30 * 60 * 1000, ACTIVE_WINDOW_MS = 5 * 60 * 1000;
+    var session_ = null, lastActive_ = Date.now();
+    function ssGet_(k) { try { return sessionStorage.getItem(k) || ''; } catch (e) { return ''; } }
+    function ssSet_(k, v) { try { if (v) sessionStorage.setItem(k, v); else sessionStorage.removeItem(k); } catch (e) {} }
+    (function () { try { var v = JSON.parse(ssGet_(SESSION_KEY) || 'null'); if (v && v.token && v.user) session_ = v; } catch (e) {} })();
+    function user_() { return session_ ? session_.user : null; }
+    function cat_() { return session_ ? session_.user.category : ''; }
+    function isMgmt_() { return cat_() === 'MANAGEMENT'; }
+    function viewOutlet_() { return cat_() === 'OUTLET' ? '' : ssGet_(VIEW_KEY); }
+    function endSession_(msg, skipServer) {
+      var tok = session_ && session_.token;
+      session_ = null; ssSet_(SESSION_KEY, ''); ssSet_(VIEW_KEY, ''); ssSet_(MSG_KEY, msg || '');
+      var done = function () { location.reload(); };
+      if (tok && !skipServer) {
+        try { fetch(API_BASE + '/api/auth?action=logout', { method: 'POST', headers: { Authorization: 'Bearer ' + tok }, keepalive: true }).then(done, done); } catch (e) { done(); }
+        setTimeout(done, 1500);
+      } else done();
+    }
+    ['click', 'keydown', 'touchstart', 'mousemove', 'scroll'].forEach(function (ev) {
+      document.addEventListener(ev, function () { lastActive_ = Date.now(); }, { passive: true, capture: true });
+    });
+    function idleCheck_() { if (session_ && Date.now() - lastActive_ > IDLE_MS) endSession_('You were signed out after 30 minutes of inactivity.'); }
+    setInterval(idleCheck_, 15000);
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) idleCheck_(); });
 
     // api_('GET', '/api/returns')  /  api_('POST', '/api/returns', {entries: [...]})
     // Resolves with the parsed JSON, rejects with Error(message) on any failure.
-    var adminPin_ = '';          // lives in memory only: a refresh or closing the page ends admin access
-    function isAdmin_() { return !!adminPin_; }
-    function api_(method, path, body, isRetry) {
+    function isAdmin_() { return cat_() === 'OUTLET' || cat_() === 'MANAGEMENT'; }     // delete / remove attachments / edit awaiting: everyone except Head Office
+    function authHeaders_(headers) {
+      if (session_) headers['Authorization'] = 'Bearer ' + session_.token;
+      if (Date.now() - lastActive_ < ACTIVE_WINDOW_MS) headers['X-User-Active'] = '1';     // only real use keeps the session alive
+      var vo = viewOutlet_(); if (vo) headers['X-View-Outlet'] = vo;
+      return headers;
+    }
+    function api_(method, path, body) {
       var headers = {};
       if (body !== undefined) headers['Content-Type'] = 'application/json';
-      var pin = getPin_();
-      if (pin) headers['X-App-Pin'] = pin;
-      if (adminPin_) headers['X-Admin-Pin'] = adminPin_;
+      authHeaders_(headers);
 
       return fetch(API_BASE + path, {
         method: method,
@@ -1897,14 +2012,13 @@
           return res.json().catch(function () { return {}; }).then(function (data) { return { res: res, data: data }; });
         })
         .then(function (r) {
-          if (r.res.status === 401 && !isRetry) {
-            var entered = window.prompt(pin ? 'Wrong PIN. Enter the PIN again:' : 'Enter the PIN to continue:');
-            if (entered === null || entered === '') throw new Error('PIN required.');
-            setPin_(entered.trim());
-            return api_(method, path, body, true);
+          var code = r.data && r.data.code;
+          if (r.res.status === 401 && (code === 'LOGIN_REQUIRED' || code === 'SESSION_EXPIRED')) {
+            if (session_) endSession_(code === 'SESSION_EXPIRED' ? 'Your session has ended. Please log in again.' : '', true);
+            throw new Error(r.data.error || 'Please log in.');
           }
-          if (r.res.status === 401) { setPin_(''); throw new Error('Wrong PIN. Please reload and try again.'); }
-          if (!r.res.ok) { var ex = new Error(r.data.error || ('Server error (' + r.res.status + ')')); ex.code = r.data.code; ex.status = r.res.status; throw ex; }
+          if (r.res.status === 403 && code === 'MUST_CHANGE_PASSWORD') { showPwModal_(true); throw new Error(r.data.error); }
+          if (!r.res.ok) { var ex = new Error(r.data.error || ('Server error (' + r.res.status + ')')); ex.code = code; ex.status = r.res.status; throw ex; }
           return r.data;
         });
     }
@@ -2087,11 +2201,87 @@
     });
 
     // ---------- Init ----------
-    api_('GET', '/api/init')
-      .then(onInitSuccess)
-      .catch(onInitFailure);
+    // ---------- Login screen ----------
+    function showLogin_() {
+      document.getElementById('loadingOverlay').style.display = 'none';
+      var box = $id('loginScreen'); box.classList.add('open');
+      var msg = ssGet_(MSG_KEY); ssSet_(MSG_KEY, '');
+      var err = $id('lg_err'); err.className = msg ? 'info' : ''; err.textContent = msg; err.style.display = msg ? 'block' : 'none';
+      try { $id('lg_id').focus(); } catch (e) {}
+    }
+    $id('lg_show').addEventListener('click', function () {
+      var f = $id('lg_pw'), on = f.type === 'password'; f.type = on ? 'text' : 'password'; this.textContent = on ? 'Hide' : 'Show';
+    });
+    $id('lg_form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var id = $id('lg_id').value.trim(), pw = $id('lg_pw').value, err = $id('lg_err'), btn = $id('lg_btn');
+      err.style.display = 'none';
+      if (!id || !pw) { err.className = ''; err.textContent = 'Enter your Login ID and password.'; err.style.display = 'block'; return; }
+      btn.disabled = true; btn.textContent = 'Checking...';
+      api_('POST', '/api/auth?action=login', { loginId: id, password: pw }).then(function (res) {
+        ssSet_(SESSION_KEY, JSON.stringify({ token: res.token, user: res.user }));
+        location.reload();
+      }).catch(function (ex) {
+        btn.disabled = false; btn.textContent = 'Log In'; $id('lg_pw').value = '';
+        err.className = ''; err.textContent = ex && ex.message ? ex.message : 'Could not log in. Please try again.'; err.style.display = 'block';
+      });
+    });
+
+    if (session_) {
+      api_('GET', '/api/init').then(onInitSuccess).catch(onInitFailure);
+    } else {
+      showLogin_();
+    }
+
+    // ---------- Role setup: which menus this account sees (the server enforces the same rules) ----------
+    function applyRole_(data) {
+      var c = cat_(), u = user_();
+      document.body.classList.toggle('ro', c === 'HEAD_OFFICE');
+      var show = function (id, on) { var el = $id(id); if (el) el.style.display = on ? '' : 'none'; };
+      ['grpMon', 'navDeleted', 'navSupLog'].forEach(function (id) { show(id, c !== 'OUTLET'); });
+      ['grpMgmt', 'navAccounts', 'navSuppliers'].forEach(function (id) { show(id, c === 'MANAGEMENT'); });
+      var label = c === 'MANAGEMENT' ? 'Management' : c === 'HEAD_OFFICE' ? 'Head Office' : 'Outlet';
+      $id('whoChip').innerHTML = '<b>' + escapeHtml(u.loginId) + '</b>' + (u.loginId.replace(/_/g, ' ').toLowerCase() === label.toLowerCase() ? '' : ' &middot; ' + label);
+      var sel = $id('viewOutlet');
+      if (c !== 'OUTLET') {
+        var cur = viewOutlet_();
+        sel.innerHTML = '<option value="">All outlets</option>' + (data.outlets || []).map(function (o) { return '<option value="' + escapeHtml(o) + '"' + (o === cur ? ' selected' : '') + '>' + escapeHtml(o) + '</option>'; }).join('');
+        sel.style.display = '';
+      }
+    }
+    $id('viewOutlet').addEventListener('change', function () { ssSet_(VIEW_KEY, this.value); location.reload(); });
+    $id('navLogout').addEventListener('click', function () { endSession_(''); });
+
+    // ---------- Change password ----------
+    var pwForced = false;
+    function showPwModal_(forced) {
+      pwForced = !!forced;
+      $id('pw_close').style.display = forced ? 'none' : '';
+      $id('pw_title').textContent = forced ? 'Set A New Password' : 'Change Password';
+      $id('pw_help').textContent = forced ? 'For security, choose your own password before you continue (6 or more characters).' : 'Choose a new password (6 or more characters).';
+      ['pw_cur', 'pw_new', 'pw_new2'].forEach(function (id) { $id(id).value = ''; });
+      trStatus_('pw_status', '', '');
+      $id('pwModal').classList.add('open');
+      try { $id('pw_cur').focus(); } catch (e) {}
+    }
+    $id('navPassword').addEventListener('click', function () { showPwModal_(false); });
+    $id('pw_close').addEventListener('click', function () { $id('pwModal').classList.remove('open'); });
+    $id('pw_save').addEventListener('click', function () {
+      var cur = $id('pw_cur').value, n1 = $id('pw_new').value, n2 = $id('pw_new2').value, btn = this;
+      if (!cur || !n1) { trStatus_('pw_status', 'error', 'Fill in all the boxes.'); return; }
+      if (n1 !== n2) { trStatus_('pw_status', 'error', 'The two new passwords do not match.'); return; }
+      btn.disabled = true;
+      api_('POST', '/api/auth?action=password', { current: cur, next: n1 }).then(function () {
+        btn.disabled = false;
+        if (pwForced) { location.reload(); return; }
+        $id('pwModal').classList.remove('open'); showStatus('statusBanner', 'ok', 'Password changed.');
+      }).catch(function (ex) { btn.disabled = false; trStatus_('pw_status', 'error', ex && ex.message ? ex.message : 'Could not change the password.'); });
+    });
 
     function onInitSuccess(data) {
+      if (data.user) { session_.user = data.user; ssSet_(SESSION_KEY, JSON.stringify(session_)); }
+      applyRole_(data);
+      if (data.user && data.user.mustChange) showPwModal_(true);
       departments = data.departments;
       reasons = data.reasons;
       statuses = data.updateStatuses;
@@ -2214,7 +2404,7 @@
 
     // ---------- Navigation ----------
     function setActiveNav(id) {
-      ['navDashboard', 'navNewReturn', 'navUpdateReturn', 'navPickedUp', 'navSummary', 'navTrFind', 'navTrNew', 'navTrPending', 'navTrAwait', 'navTrCompleted', 'navTrSummary', 'navAdmin'].forEach(function (navId) {
+      ['navDashboard', 'navNewReturn', 'navUpdateReturn', 'navPickedUp', 'navSummary', 'navTrFind', 'navTrNew', 'navTrPending', 'navTrAwait', 'navTrCompleted', 'navTrSummary', 'navAccounts', 'navSuppliers', 'navDeleted', 'navSupLog'].forEach(function (navId) {
         var el = document.getElementById(navId);
         if (el) el.classList.toggle('active', navId === id);
       });
@@ -2223,15 +2413,14 @@
     }
 
     function showScreen(id) {
-      ['homeScreen', 'adminScreen', 'pickedUpScreen', 'newReturnScreen', 'updateListScreen', 'updateDetailScreen', 'bulkReviewScreen', 'summaryScreen',
-       'trFindScreen', 'trNewScreen', 'trResultScreen', 'trLabelScreen', 'trPendingScreen', 'trBulkReviewScreen', 'trAwaitScreen', 'trAwaitBulkReviewScreen', 'trDetailScreen', 'trCompletedScreen', 'trSummaryScreen'].forEach(function (s) {
+      ['homeScreen', 'pickedUpScreen', 'newReturnScreen', 'updateListScreen', 'updateDetailScreen', 'bulkReviewScreen', 'summaryScreen',
+       'trFindScreen', 'trNewScreen', 'trResultScreen', 'trLabelScreen', 'trPendingScreen', 'trBulkReviewScreen', 'trAwaitScreen', 'trAwaitBulkReviewScreen', 'trDetailScreen', 'trCompletedScreen', 'trSummaryScreen', 'accountsScreen', 'suppliersScreen', 'auditScreen'].forEach(function (s) {
         document.getElementById(s).style.display = (s === id) ? 'block' : 'none';
       });
       if (id === 'homeScreen') { setActiveNav('navDashboard'); if (typeof loadDashTransfers_ === 'function') loadDashTransfers_(); }
       else if (id === 'newReturnScreen') setActiveNav('navNewReturn');
       else if (id === 'updateListScreen' || id === 'updateDetailScreen' || id === 'bulkReviewScreen') setActiveNav('navUpdateReturn');
       else if (id === 'summaryScreen') setActiveNav('navSummary');
-      else if (id === 'adminScreen') setActiveNav('navAdmin');
       else if (id === 'pickedUpScreen') setActiveNav('navPickedUp');
       else if (id === 'trFindScreen') setActiveNav('navTrFind');
       else if (id === 'trNewScreen' || id === 'trResultScreen') setActiveNav('navTrNew');
@@ -3382,7 +3571,7 @@
     }
     function uploadAttachment_(a) {
       var headers = { 'Content-Type': 'application/octet-stream' };
-      var pin = getPin_(); if (pin) headers['X-App-Pin'] = pin;
+      authHeaders_(headers);
       return fetch(API_BASE + '/api/transfers/upload?filename=' + encodeURIComponent(a.name) + '&type=' + encodeURIComponent(a.type),
         { method: 'POST', headers: headers, body: a.blob })
         .then(function (res) {
@@ -3721,7 +3910,7 @@
     });
 
     // ---------- Detail: PENDING (enter DO No + pickup), AWAITING_COPY (enter copy-document return), COMPLETED (correct / undo) ----------
-    var TD_BUTTONS = ['td_editBtn', 'td_deleteBtn', 'td_saveBtn', 'td_undoBtn', 'td_copySaveBtn', 'td_undoCopyBtn'];
+    var TD_BUTTONS = ['td_editBtn', 'td_deleteBtn', 'td_saveBtn', 'td_undoBtn', 'td_copySaveBtn', 'td_undoCopyBtn', 'td_revertBtn'];
     function renderTdAttachments_(t) {
       var list = t.attachments || [];
       $id('td_attN').textContent = list.length;
@@ -3766,7 +3955,8 @@
       $id('td_copyDate').value = done ? (t.copyReturnedDate || '') : '';
       $id('td_copyBy').value = done ? (t.copySubmittedBy || '') : '';
       $id('td_copySaveBtn').textContent = done ? 'Save Changes' : 'Complete Transfer';
-      $id('td_undoCopyBtn').style.display = done ? '' : 'none';
+      $id('td_undoCopyBtn').style.display = (done && isMgmt_()) ? '' : 'none';
+      $id('td_revertBtn').style.display = (done && isMgmt_()) ? '' : 'none';
       trStatus_('td_status', '', ''); trStatus_('td_cstatus', '', '');
       TD_BUTTONS.forEach(function (id) { $id(id).disabled = false; });
       showScreen('trDetailScreen');
@@ -3850,6 +4040,15 @@
       api_('PATCH', '/api/transfers/' + t.id, { action: 'undo', from: 'COMPLETED' }).then(function (res) {
         btn.disabled = false; goAwait_(res.item.invoiceNo + ' is back in Awaiting Copy-Document.'); loadTrCompleted();
       }).catch(function (err) { btn.disabled = false; trStatus_('td_cstatus', 'error', err && err.message ? err.message : 'Could not undo.'); });
+    });
+
+    $id('td_revertBtn').addEventListener('click', function () {          // COMPLETED -> PENDING (Management)
+      var t = trCurrent; if (!t) return;
+      if (!confirm('Revert ' + t.invoiceNo + ' to Pending? Its DO No, pickup and copy-document details will be cleared (attachments are kept).')) return;
+      var btn = this; btn.disabled = true;
+      api_('PATCH', '/api/transfers/' + t.id, { action: 'revert' }).then(function (res) {
+        btn.disabled = false; goPending_(res.item.invoiceNo + ' is back in Pending Inter-Outlet Transfers.'); loadTrCompleted();
+      }).catch(function (err) { btn.disabled = false; trStatus_('td_cstatus', 'error', err && err.message ? err.message : 'Could not revert.'); });
     });
 
     $id('td_deleteBtn').addEventListener('click', function () {
@@ -4260,42 +4459,6 @@
       openFind_(q);
     });
 
-    // ---------- Admin Access (this device only, in memory: refresh / close ends it) ----------
-    function applyAdmin_() {
-      var on = isAdmin_();
-      $id('adminBadge').style.display = on ? 'block' : 'none';
-      $id('ad_out').style.display = on ? 'none' : 'block';
-      $id('ad_in').style.display = on ? 'block' : 'none';
-      if (isVisible_('trDetailScreen') && trCurrent) {
-        renderTdAttachments_(trCurrent);
-        var st = trCurrent.status;
-        $id('td_deleteBtn').style.display = ((st === 'PENDING' || st === 'AWAITING_COPY') && on) ? '' : 'none';
-        $id('td_editBtn').style.display = (st === 'PENDING' || (st === 'AWAITING_COPY' && on)) ? '' : 'none';
-      }
-    }
-    function adminOff_() { adminPin_ = ''; applyAdmin_(); }
-    function adminLogin_() {
-      var pw = $id('ad_pass').value.trim();
-      if (!pw) { trStatus_('ad_status', 'error', 'Please enter the admin password.'); $id('ad_pass').focus(); return; }
-      var btn = $id('ad_loginBtn'), label = btn.textContent;
-      trStatus_('ad_status', '', '');
-      setBusy_(btn, null, true, 'Checking...');
-      adminPin_ = pw;
-      api_('GET', '/api/transfers?view=admin').then(function () {
-        setBusy_(btn, null, false, label);
-        $id('ad_pass').value = ''; applyAdmin_();
-      }).catch(function (err) {
-        setBusy_(btn, null, false, label);
-        adminPin_ = ''; $id('ad_pass').value = ''; applyAdmin_();
-        trStatus_('ad_status', 'error', err && err.code === 'ADMIN_REQUIRED' ? 'Wrong admin password.' : (err && err.message ? err.message : 'Could not log in. Please try again.'));
-      });
-    }
-    $id('ad_loginBtn').addEventListener('click', adminLogin_);
-    $id('ad_pass').addEventListener('keydown', function (e) { if (e.key === 'Enter') adminLogin_(); });
-    $id('ad_logoutBtn').addEventListener('click', function () { adminOff_(); });
-    $id('ad_back').addEventListener('click', function () { showScreen('homeScreen'); });
-    $id('navAdmin').addEventListener('click', function () { trNav_('adminScreen'); applyAdmin_(); if (!isAdmin_()) { try { $id('ad_pass').focus(); } catch (e) {} } });
-
     // ---------- Picked Up Return (completed returns, read-only) ----------
     var pkItems = [], pkSig = '', pkTimer, pkSeq = 0;
     function pkRender_() {
@@ -4315,7 +4478,7 @@
           it('Supplier', r.supplier) + it('Brand', r.brand) + it('Department', r.department) + it('RPO Date', r.rpoDateDisplay) +
           it('Quantity', qty) + it('Reason', r.reason) + it('Remark', r.remark) + it('Entered', r.dateSubmitted) + it('Entered By', r.submittedBy) +
           it('Status', r.status) + it('Pickup Date', r.pickupDateDisplay) + it('Updated By', r.updatedBy) + it('Updated', r.dateUpdated) +
-          '</div></div></div>';
+          '</div>' + (isMgmt_() ? '<div style="padding:6px 4px 12px;"><button type="button" class="btn-secondary bk-small pk-revert" data-id="' + escapeHtml(r.id) + '">Revert to Pending</button></div>' : '') + '</div></div>';
       }).join('');
     }
     function loadPickedUp_(quiet) {
@@ -4335,6 +4498,15 @@
     $id('pk_search').addEventListener('input', function () { clearTimeout(pkTimer); pkTimer = setTimeout(function () { loadPickedUp_(); }, 300); });
     $id('pk_clearSearch').addEventListener('click', function () { $id('pk_search').value = ''; loadPickedUp_(); $id('pk_search').focus(); });
     $id('pk_list').addEventListener('click', function (e) {
+      var rv = e.target.closest && e.target.closest('.pk-revert');
+      if (rv) {
+        if (!confirm('Revert this return to Pending? Its pickup date and updated-by will be cleared.')) return;
+        rv.disabled = true;
+        api_('PATCH', '/api/returns/' + rv.getAttribute('data-id'), { action: 'revert' }).then(function () {
+          showStatus('statusBanner', 'ok', 'Returned to Pending.'); pkSig = ''; loadPickedUp_(); refreshAll({ force: true });
+        }).catch(function (err) { rv.disabled = false; showStatus('statusBanner', 'error', err && err.message ? err.message : 'Could not revert.'); });
+        return;
+      }
       var item = e.target.closest && e.target.closest('.pk-item'); if (!item) return;
       var more = item.parentNode.querySelector('.pk-more'); more.style.display = more.style.display === 'none' ? 'block' : 'none';
     });
@@ -4391,6 +4563,106 @@
       }
       return Promise.all(jobs);
     }
+
+    // ---------- Accounts (Management) ----------
+    var CAT_LABEL_ = { OUTLET: 'Outlet', HEAD_OFFICE: 'Head Office', MANAGEMENT: 'Management' };
+    function loadAccounts_() {
+      return api_('GET', '/api/auth?action=accounts').then(function (list) {
+        $id('ac_n').textContent = list.length;
+        $id('ac_list').innerHTML = list.map(function (a) {
+          return '<div class="pending-item" style="cursor:default;margin-bottom:10px;"><div class="acc-row" style="width:100%;"><div><div class="rpo">' + escapeHtml(a.loginId) +
+            '<span class="chip">' + CAT_LABEL_[a.category] + '</span><span class="chip ' + (a.active ? 'on' : 'off') + '">' + (a.active ? 'ACTIVE' : 'INACTIVE') + '</span>' + (a.locked ? '<span class="chip off">LOCKED</span>' : '') + '</div>' +
+            '<div class="meta">' + escapeHtml(a.name) + ' &middot; ' + (a.lastLogin ? 'Last login ' + escapeHtml(a.lastLogin) : 'Never logged in') + (a.mustChange ? ' &middot; must change password' : '') + '</div></div>' +
+            '<div class="acc-btns"><button type="button" class="btn-secondary bk-small" data-act="reset" data-id="' + escapeHtml(a.loginId) + '">Reset Password</button>' +
+            '<button type="button" class="' + (a.active ? 'btn-danger' : 'btn-success') + ' bk-small" data-act="' + (a.active ? 'off' : 'on') + '" data-id="' + escapeHtml(a.loginId) + '">' + (a.active ? 'Deactivate' : 'Activate') + '</button></div></div></div>';
+        }).join('');
+      }).catch(function (e) { showStatus('statusBanner', 'error', e.message); });
+    }
+    $id('navAccounts').addEventListener('click', function () { showScreen('accountsScreen'); setActiveNav('navAccounts'); loadAccounts_(); });
+    $id('ac_back').addEventListener('click', function () { showScreen('homeScreen'); });
+    $id('ac_create').addEventListener('click', function () {
+      var btn = this; btn.disabled = true; trStatus_('ac_status', '', '');
+      api_('POST', '/api/auth?action=account', { loginId: $id('ac_id').value, name: $id('ac_name').value, category: $id('ac_cat').value }).then(function (r) {
+        btn.disabled = false; $id('ac_id').value = ''; $id('ac_name').value = '';
+        trStatus_('ac_status', 'ok', 'Account created. Starting password: ' + r.defaultPassword + ' (they must change it at first login).'); loadAccounts_();
+      }).catch(function (e) { btn.disabled = false; trStatus_('ac_status', 'error', e.message); });
+    });
+    $id('ac_list').addEventListener('click', function (e) {
+      var b = e.target.closest && e.target.closest('button[data-act]'); if (!b) return;
+      var id = b.getAttribute('data-id'), act = b.getAttribute('data-act');
+      var body = { loginId: id };
+      if (act === 'reset') { if (!confirm('Reset the password of ' + id + ' to its default? They will be logged out.')) return; body.reset = true; }
+      else { if (act === 'off' && !confirm('Deactivate ' + id + '? They will be logged out and cannot log in.')) return; body.active = act === 'on'; }
+      b.disabled = true;
+      api_('PATCH', '/api/auth?action=account', body).then(function (r) {
+        showStatus('statusBanner', 'ok', r.defaultPassword ? id + ' reset. Password is now ' + r.defaultPassword + '.' : 'Saved.'); loadAccounts_();
+      }).catch(function (er) { b.disabled = false; showStatus('statusBanner', 'error', er.message); });
+    });
+
+    // ---------- Suppliers (Management) ----------
+    var spAll = [];
+    function spRender_() {
+      var q = $id('sp_search').value.trim().toUpperCase(), rows = q ? spAll.filter(function (x) { return (x.code + ' ' + x.name).toUpperCase().indexOf(q) !== -1; }) : spAll;
+      $id('sp_note').textContent = rows.length + ' supplier' + (rows.length === 1 ? '' : 's') + (rows.length > 60 ? ' - showing the first 60, type to narrow down' : '');
+      $id('sp_list').innerHTML = rows.slice(0, 60).map(function (x) {
+        return '<div class="pending-item" style="cursor:default;margin-bottom:8px;"><div class="acc-row" style="width:100%;"><div><div class="rpo">' + escapeHtml(x.name) + (x.active ? '' : '<span class="chip off">INACTIVE</span>') + '</div><div class="meta">' + escapeHtml(x.code) + '</div></div>' +
+          '<div class="acc-btns"><button type="button" class="btn-secondary bk-small" data-act="rename" data-code="' + escapeHtml(x.code) + '">Rename</button>' +
+          '<button type="button" class="' + (x.active ? 'btn-danger' : 'btn-success') + ' bk-small" data-act="' + (x.active ? 'off' : 'on') + '" data-code="' + escapeHtml(x.code) + '">' + (x.active ? 'Deactivate' : 'Activate') + '</button></div></div></div>';
+      }).join('');
+    }
+    function loadSupplierAdmin_() { return api_('GET', '/api/suppliers?all=1').then(function (l) { spAll = l; spRender_(); }).catch(function (e) { showStatus('statusBanner', 'error', e.message); }); }
+    $id('navSuppliers').addEventListener('click', function () { showScreen('suppliersScreen'); setActiveNav('navSuppliers'); loadSupplierAdmin_(); });
+    $id('sp_back').addEventListener('click', function () { showScreen('homeScreen'); });
+    $id('sp_search').addEventListener('input', spRender_);
+    $id('sp_add').addEventListener('click', function () {
+      var btn = this; btn.disabled = true; trStatus_('sp_status', '', '');
+      api_('POST', '/api/suppliers', { code: $id('sp_code').value, name: $id('sp_name').value }).then(function () {
+        btn.disabled = false; $id('sp_code').value = ''; $id('sp_name').value = ''; trStatus_('sp_status', 'ok', 'Supplier added.'); loadSupplierAdmin_(); loadSuppliers();
+      }).catch(function (e) { btn.disabled = false; trStatus_('sp_status', 'error', e.message); });
+    });
+    $id('sp_list').addEventListener('click', function (e) {
+      var b = e.target.closest && e.target.closest('button[data-act]'); if (!b) return;
+      var code = b.getAttribute('data-code'), act = b.getAttribute('data-act'), body = { code: code };
+      if (act === 'rename') {
+        var cur = spAll.filter(function (x) { return x.code === code; })[0];
+        var nn = window.prompt('New name for ' + code + ':', cur ? cur.name : ''); if (nn === null || !nn.trim()) return; body.name = nn;
+      } else body.active = act === 'on';
+      b.disabled = true;
+      api_('PATCH', '/api/suppliers', body).then(function () { showStatus('statusBanner', 'ok', 'Supplier saved.'); loadSupplierAdmin_(); loadSuppliers(); })
+        .catch(function (er) { b.disabled = false; showStatus('statusBanner', 'error', er.message); });
+    });
+
+    // ---------- Deleted records / supplier change log (Head Office + Management) ----------
+    var auKind = 'deleted', auTimer;
+    var AU_TEXT_ = {
+      deleted: ['Deleted Records', 'Every pending return or transfer that was deleted, with who deleted it and what it held.'],
+      supplier: ['Supplier Change Log', 'Every supplier added, renamed, deactivated or reactivated.']
+    };
+    var ACTION_TEXT_ = { DELETE: 'Deleted', REVERT: 'Reverted', SUPPLIER_ADD: 'Added', SUPPLIER_EDIT: 'Renamed', SUPPLIER_DEACTIVATE: 'Deactivated', SUPPLIER_ACTIVATE: 'Reactivated' };
+    function loadAudit_() {
+      var q = $id('au_search').value.trim();
+      return api_('GET', '/api/auth?action=audit&kind=' + auKind + (q ? '&q=' + encodeURIComponent(q) : '')).then(function (rows) {
+        $id('au_empty').style.display = rows.length ? 'none' : 'block';
+        $id('au_list').innerHTML = rows.map(function (r) {
+          var snap = '';
+          if (r.snapshot) {
+            snap = '<details><summary class="meta" style="cursor:pointer;">Details</summary><pre>' + escapeHtml(Object.keys(r.snapshot).filter(function (k) { return r.snapshot[k] !== null && r.snapshot[k] !== '' && ['attachments', 'legacy_sheet', 'legacy_row'].indexOf(k) === -1; })
+              .map(function (k) { return k + ': ' + r.snapshot[k]; }).join('\n')) + '</pre></details>';
+          }
+          return '<div class="pending-item au-row" style="cursor:default;margin-bottom:8px;display:block;"><div class="rpo">' + escapeHtml(r.ref || '-') + '<span class="chip">' + escapeHtml((r.kind || '').toLowerCase()) + '</span></div>' +
+            '<div class="meta">' + escapeHtml(ACTION_TEXT_[r.action] || r.action) + ' by ' + escapeHtml(r.actor) + ' &middot; ' + escapeHtml(r.at) + (r.outlet ? ' &middot; ' + escapeHtml(r.outlet) : '') + '</div>' +
+            (r.detail ? '<div class="meta">' + escapeHtml(r.detail) + '</div>' : '') + snap + '</div>';
+        }).join('');
+      }).catch(function (e) { showStatus('statusBanner', 'error', e.message); });
+    }
+    function openAudit_(kind) {
+      auKind = kind; showScreen('auditScreen'); setActiveNav(kind === 'deleted' ? 'navDeleted' : 'navSupLog');
+      $id('au_title').textContent = AU_TEXT_[kind][0]; $id('au_help').textContent = AU_TEXT_[kind][1]; $id('au_search').value = ''; loadAudit_();
+    }
+    $id('navDeleted').addEventListener('click', function () { openAudit_('deleted'); });
+    $id('navSupLog').addEventListener('click', function () { openAudit_('supplier'); });
+    $id('au_back').addEventListener('click', function () { showScreen('homeScreen'); });
+    $id('au_search').addEventListener('input', function () { clearTimeout(auTimer); auTimer = setTimeout(loadAudit_, 300); });
   </script>
 </body>
 </html>

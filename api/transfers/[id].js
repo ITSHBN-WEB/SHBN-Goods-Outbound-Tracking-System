@@ -8,10 +8,10 @@
 //              { from: 'COMPLETED' }  -> AWAITING_COPY (copy-document details cleared)
 //              { from: 'AWAITING_COPY' } -> PENDING (DO No / pickup date cleared)
 //   attach   = add attachments in any status          { attachments: [{url,name,type}] }
-//   detach   = remove one attachment in any status    { url }   (admin only: X-Admin-Pin header)
+//   detach   = remove one attachment in any status    { url }   (Outlet and Management; not Head Office)
 // DELETE /api/transfers/:id  while PENDING or AWAITING_COPY, admin only
 // Every change checks the row's current state inside the SQL itself, so two people acting at once cannot both win.
-const { route, HttpError, query, parseId, requireAdmin } = require('../../lib/core');
+const { route, HttpError, query, parseId, requireAdmin, scopeOf, assertOwn, audit } = require('../../lib/core');
 const { TRANSFER_COLUMNS, TRANSFER_ORIGINAL_FIELDS, MAX_ATTACHMENTS, parseTransfer, parseCompletion, parseCopy, parseAttachments, parseOriginal, originalSql } = require('../../lib/core');
 const { assertInvoiceFree, resolveOutlet, transferCounts } = require('../../lib/core');
 
@@ -30,10 +30,11 @@ async function whyNot(id, expected, adding) {
   }
   return new HttpError(409, 'This transfer was changed by someone else. Please refresh the list.', 'CHANGED');
 }
-async function withCounts(item) { return Object.assign({ success: true, item }, await transferCounts()); }
+async function withCounts(item, req) { return Object.assign({ success: true, item }, await transferCounts(scopeOf(req))); }
 
 module.exports = route(['PUT', 'PATCH', 'DELETE'], async function (req) {
   const id = parseId(req.query.id);
+  await assertOwn('transfers', id, req);          // an Outlet account can only reach its own records
 
   if (req.method === 'PUT') {
     const t = parseTransfer(req.body);
@@ -61,7 +62,7 @@ module.exports = route(['PUT', 'PATCH', 'DELETE'], async function (req) {
       }
       throw await whyNot(id, expected);
     }
-    return await withCounts(rows[0]);
+    return await withCounts(rows[0], req);
   }
 
   if (req.method === 'PATCH') {
@@ -79,7 +80,7 @@ module.exports = route(['PUT', 'PATCH', 'DELETE'], async function (req) {
         [u.doNo, u.pickupDate, u.updatedBy, JSON.stringify(u.attachments), id, u.attachments.length]
       );
       if (!rows.length) throw await whyNot(id, 'PENDING', u.attachments.length);
-      return await withCounts(rows[0]);
+      return await withCounts(rows[0], req);
     }
 
     if (action === 'copy') {                 // step 2
@@ -93,7 +94,7 @@ module.exports = route(['PUT', 'PATCH', 'DELETE'], async function (req) {
         [u.copyReturnedDate, u.copySubmittedBy, JSON.stringify(u.attachments), id, u.attachments.length]
       );
       if (!rows.length) throw await whyNot(id, 'AWAITING_COPY', u.attachments.length);
-      return await withCounts(rows[0]);
+      return await withCounts(rows[0], req);
     }
 
     if (action === 'correct') {
@@ -112,11 +113,24 @@ module.exports = route(['PUT', 'PATCH', 'DELETE'], async function (req) {
         [u.doNo, u.pickupDate, u.updatedBy, withCopy, c.copyReturnedDate, c.copySubmittedBy, id, expected]
       );
       if (!rows.length) throw await whyNot(id, expected);
-      return await withCounts(rows[0]);
+      return await withCounts(rows[0], req);
+    }
+
+    if (action === 'revert') {               // Management only: a COMPLETED transfer goes all the way back to Pending
+      if (req.user.category !== 'MANAGEMENT') throw new HttpError(403, 'Only Management can revert a completed transfer.', 'FORBIDDEN');
+      const rows = await query(
+        `UPDATE transfers
+            SET status = 'PENDING', do_no = NULL, pickup_date = NULL, updated_by = NULL, updated_at = NULL,
+                copy_returned_date = NULL, copy_submitted_by = NULL, copy_updated_at = NULL
+          WHERE id = $1 AND status = 'COMPLETED' RETURNING ${TRANSFER_COLUMNS}, origin`, [id]);
+      if (!rows.length) throw await whyNot(id, 'COMPLETED');
+      await audit(req, 'REVERT', 'TRANSFER', rows[0].invoiceNo, 'Completed -> Pending', null, rows[0].origin);
+      return await withCounts(rows[0], req);
     }
 
     if (action === 'undo') {
       const from = String(body.from || '');
+      if (from === 'COMPLETED' && req.user.category !== 'MANAGEMENT') throw new HttpError(403, 'Only Management can reopen a completed transfer.', 'FORBIDDEN');
       let rows;
       if (from === 'COMPLETED') {
         rows = await query(
@@ -133,7 +147,7 @@ module.exports = route(['PUT', 'PATCH', 'DELETE'], async function (req) {
         throw new HttpError(400, 'Say which step to undo.');
       }
       if (!rows.length) throw await whyNot(id, from);
-      return await withCounts(rows[0]);
+      return await withCounts(rows[0], req);
     }
 
     if (action === 'attach') {
@@ -146,7 +160,7 @@ module.exports = route(['PUT', 'PATCH', 'DELETE'], async function (req) {
         [JSON.stringify(list), id, list.length]
       );
       if (!rows.length) throw await whyNot(id, null, list.length);
-      return await withCounts(rows[0]);
+      return await withCounts(rows[0], req);
     }
 
     if (action === 'detach') {
@@ -160,14 +174,19 @@ module.exports = route(['PUT', 'PATCH', 'DELETE'], async function (req) {
         [url, id]
       );
       if (!rows.length) throw await whyNot(id, null);
-      return await withCounts(rows[0]);
+      return await withCounts(rows[0], req);
     }
 
     throw new HttpError(400, 'Unknown action.');
   }
 
   requireAdmin(req);
-  const rows = await query(`DELETE FROM transfers WHERE id = $1 AND status IN ('PENDING', 'AWAITING_COPY') RETURNING id`, [id]);
+  // delete + audit copy in ONE statement, so a deleted record always leaves a trace for Head Office
+  const rows = await query(
+    `WITH d AS (DELETE FROM transfers WHERE id = $1 AND status IN ('PENDING', 'AWAITING_COPY') RETURNING *)
+     INSERT INTO audit_log (actor, action, kind, ref, detail, snapshot, origin)
+     SELECT $2, 'DELETE', 'TRANSFER', invoice_no, transfer_to || ' / ' || status, to_jsonb(d), origin FROM d RETURNING id`,
+    [id, req.user.loginId]);
   if (!rows.length) throw await whyNot(id, 'PENDING');
-  return Object.assign({ success: true }, await transferCounts());
+  return Object.assign({ success: true }, await transferCounts(scopeOf(req)));
 });
