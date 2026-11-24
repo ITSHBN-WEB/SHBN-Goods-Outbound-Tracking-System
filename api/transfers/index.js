@@ -5,7 +5,7 @@
 // PATCH /api/transfers   bulk update, body { ids:[...], ... }
 //         step 1 (default / action:'complete'): { doNo, pickupDate, updatedBy, attachments? }   PENDING -> AWAITING_COPY
 //         step 2 (action:'copy'):               { copyReturnedDate, copySubmittedBy, attachments? }   AWAITING_COPY -> COMPLETED
-const { route, HttpError, query, scopeOf, writeOrigin, ownedIds } = require('../../lib/core');
+const { route, HttpError, query, SCOPE_SQL, scopeOf, writeOrigin, ownedIds } = require('../../lib/core');
 const { TRANSFER_COLUMNS, parseTransfer, parseBulkTransfers, MAX_ATTACHMENTS, assertInvoiceFree, resolveOutlet, transferCounts } = require('../../lib/core');
 
 function dateParam(v, label) {
@@ -24,7 +24,7 @@ module.exports = route(['GET', 'POST', 'PATCH'], async function (req) {
     if (q.view === 'dashboard') {         // dashboard card: pending count + the 6 most recently submitted / completed transfers
       const [counts, recent] = await Promise.all([
         transferCounts(scope),
-        query(`SELECT ${TRANSFER_COLUMNS} FROM transfers WHERE ($1::text IS NULL OR origin = $1)
+        query(`SELECT ${TRANSFER_COLUMNS} FROM transfers WHERE ${SCOPE_SQL(1)}
                 ORDER BY GREATEST(created_at, COALESCE(updated_at, created_at), COALESCE(copy_updated_at, created_at)) DESC, id DESC LIMIT 6`, [scope])
       ]);
       return Object.assign({ recent }, counts);
@@ -33,7 +33,7 @@ module.exports = route(['GET', 'POST', 'PATCH'], async function (req) {
     if (['PENDING', 'AWAITING_COPY', 'COMPLETED', 'ALL'].indexOf(status) === -1) throw new HttpError(400, 'Invalid status.');
     const from = dateParam(q.from, 'From date'), to = dateParam(q.to, 'To date');
     const where = [], params = [];
-    if (scope) { params.push(scope); where.push('origin = $' + params.length); }
+    params.push(scope); where.push(SCOPE_SQL(1));
     if (status !== 'ALL') { params.push(status); where.push('status = $' + params.length); }
     if (from) { params.push(from); where.push('transfer_date >= $' + params.length + '::date'); }
     if (to) { params.push(to); where.push('transfer_date <= $' + params.length + '::date'); }

@@ -1,5 +1,5 @@
 // GET /api/summary  - every pending return as one flat list (see the sort note below). Each row carries its outlet.
-const { route, scopeOf } = require('../lib/core');
+const { route, scopeOf, SCOPE_SQL } = require('../lib/core');
 const { query } = require('../lib/core');
 const { RETURN_COLUMNS } = require('../lib/core');
 
@@ -7,7 +7,7 @@ module.exports = route(['GET'], async function (req) {
   const rows = await query(`
     SELECT ${RETURN_COLUMNS}
     FROM returns
-    WHERE status = 'PENDING' AND ($1::text IS NULL OR origin = $1)
+    WHERE status = 'PENDING' AND ${SCOPE_SQL(1)}
     ORDER BY rpo_date ASC NULLS LAST, id ASC`, [scopeOf(req)]);
 
   // One flat list, ordered outlet -> supplier (A-Z) -> oldest RPO date first (undated last). Sorted in JS (not SQL) so the order is

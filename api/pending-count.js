@@ -14,6 +14,6 @@ module.exports = route(['GET'], async function () {
           AND ((now() AT TIME ZONE 'Asia/Kuala_Lumpur')::date - rpo_date) > 30
       )::int AS "overdueCount"
     FROM returns
-    WHERE status = 'PENDING'`);
+    WHERE status = 'PENDING' AND COALESCE(origin, '') <> 'MGMT-TEST'`);   // practice records from the Management (Test) store are not counted
   return rows[0];
 }, { anyOrigin: true });

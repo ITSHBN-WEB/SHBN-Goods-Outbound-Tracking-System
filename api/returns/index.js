@@ -2,7 +2,7 @@
 // PATCH /api/returns -> bulk status update: body { items: [{id, status}], pickupDate, updatedBy }
 // POST /api/returns  -> body { entries: [ {supplier, department, brand, rpoNo, totalItem,
 //                        totalCarton, rpoDate (yyyy-mm-dd), reason, remark, submittedBy} ] }
-const { route, scopeOf, writeOrigin, ownedIds } = require('../../lib/core');
+const { route, scopeOf, writeOrigin, ownedIds, SCOPE_SQL } = require('../../lib/core');
 const { query } = require('../../lib/core');
 const { parseEntries, parseBulkUpdate, resolveSupplierCodes, assertRpoFree } = require('../../lib/core');
 const { RETURN_COLUMNS, pendingCount } = require('../../lib/core');
@@ -13,7 +13,7 @@ module.exports = route(['GET', 'POST', 'PATCH'], async function (req) {
     // ?status=done  -> every return that has been picked up / disposed / otherwise completed (newest update first)
     if (req.query.status === 'done') {
       const params = [scope];
-      let where = "status <> 'PENDING' AND ($1::text IS NULL OR origin = $1)";
+      let where = "status <> 'PENDING' AND " + SCOPE_SQL(1);
       const needle = String(req.query.q || '').trim().slice(0, 80);
       if (needle) {
         params.push('%' + needle.replace(/[\\%_]/g, '\\$&') + '%');
@@ -31,11 +31,15 @@ module.exports = route(['GET', 'POST', 'PATCH'], async function (req) {
          ORDER BY updated_at DESC NULLS LAST, id DESC
          LIMIT ${limit}`, params);
     }
+    // pending list; with ?q= it is the dashboard "Find" search over RPO No, supplier and brand (max 30)
+    const needle = String(req.query.q || '').trim().slice(0, 80), pp = [scope];
+    let w = "status = 'PENDING' AND " + SCOPE_SQL(1);
+    if (needle) { pp.push('%' + needle.replace(/[\\%_]/g, '\\$&') + '%'); w += ' AND (rpo_no ILIKE $2 OR supplier ILIKE $2 OR brand ILIKE $2)'; }
     return await query(`
       SELECT ${RETURN_COLUMNS}
       FROM returns
-      WHERE status = 'PENDING' AND ($1::text IS NULL OR origin = $1)
-      ORDER BY submitted_at DESC NULLS LAST, id DESC`, [scope]);      // newest entry first
+      WHERE ${w}
+      ORDER BY submitted_at DESC NULLS LAST, id DESC${needle ? ' LIMIT 30' : ''}`, pp);      // newest entry first
   }
 
   if (req.method === 'PATCH') {
