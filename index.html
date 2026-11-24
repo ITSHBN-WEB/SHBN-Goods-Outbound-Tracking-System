@@ -1668,6 +1668,7 @@
           <button type="button" class="seg-btn active" id="tsModeMonth">Month</button>
           <button type="button" class="seg-btn" id="tsModeRange">Date Range</button>
         </div>
+        <div class="field" id="ts_outletWrap" style="display:none;max-width:320px;margin-bottom:14px;"><label>Outlet</label><select id="ts_outlet"><option value="">Select outlet…</option></select></div>
         <div class="row2">
           <div class="field" id="ts_monthWrap"><label>Month</label><input type="month" id="ts_month"></div>
           <div class="field" id="ts_statusWrap"><label>Show</label>
@@ -1892,6 +1893,7 @@
 
       <div class="card">
         <h2>Summary Report</h2>
+        <div class="field" id="sr_outletWrap" style="display:none;max-width:320px;"><label>Outlet</label><select id="sr_outlet"><option value="">Select outlet…</option></select></div>
         <p class="sr-help" id="sr_help">Every pending return across all months, grouped by supplier, oldest RPO date first within each group.</p>
         <div class="btn-row">
           <button class="btn-primary" id="sr_runBtn" type="button">Run</button>
@@ -2043,8 +2045,8 @@
     function viewOutlet_() {
       if (cat_() === 'OUTLET') return '';
       var v = ssGet_(VIEW_KEY);
-      if (v === 'ALL') return '';
-      if (v === TEST_STORE && cat_() !== 'MANAGEMENT') return '';
+      if (v === 'ALL') v = '';                                   // "All outlets" is no longer a store: it is chosen in each summary report
+      if (v === TEST_STORE && cat_() !== 'MANAGEMENT') v = '';
       return v || (cat_() === 'MANAGEMENT' ? TEST_STORE : '');
     }
     function storeLabel_(v) { return v === TEST_STORE ? 'Management (Test)' : v ? v : 'All outlets'; }
@@ -2322,6 +2324,8 @@
       $id('umPill').classList.toggle('test', viewOutlet_() === TEST_STORE);
       $id('umHead').innerHTML = '<b>' + escapeHtml(u.loginId) + '</b>' + label + (c === 'OUTLET' ? '' : ' \u00b7 working in ' + escapeHtml(store));
       storeOutlets = data.outlets || [];
+      ['sr_outletWrap', 'ts_outletWrap'].forEach(function (id) { $id(id).style.display = c !== 'OUTLET' ? '' : 'none'; }); fillRptOutlets_();
+      if (c === 'HEAD_OFFICE' && !viewOutlet_() && storeOutlets.length) { ssSet_(VIEW_KEY, storeOutlets[0]); location.reload(); }   // Head Office always works in one assigned outlet
     }
     var storeOutlets = [];
     $id('umBtn').addEventListener('click', function (e) { e.stopPropagation(); var o = $id('umPop').classList.toggle('open'); this.setAttribute('aria-expanded', o ? 'true' : 'false'); });
@@ -3033,14 +3037,23 @@
 
     // ================= SUMMARY REPORT =================
 
-    var srRows = [], srStamp = '';
+    var srRows = [], srStamp = '', srScope = '';
     // Head Office / Management see more than one outlet: they get an Outlet column, and with "All outlets" the list is grouped by outlet.
     function showOutletCol_() { return cat_() !== 'OUTLET'; }
-    function groupByOutlet_() { return cat_() !== 'OUTLET' && !viewOutlet_(); }
-    function outletScopeText_() { return cat_() === 'OUTLET' ? (user_().loginId) : (viewOutlet_() || 'All outlets'); }
+    // scope = what the report's own Outlet filter was set to when it was run: 'ALL' or one outlet ('' for an Outlet account)
+    function groupByOutlet_(scope) { return cat_() !== 'OUTLET' && scope === 'ALL'; }
+    function outletScopeText_(scope) { return cat_() === 'OUTLET' ? (user_().loginId) : (scope === 'ALL' ? 'All outlets' : scope); }
+    function rptScopeQs_(sel) { return cat_() === 'OUTLET' ? '' : 'outlet=' + encodeURIComponent($id(sel).value); }
+    function fillRptOutlets_() {
+      ['sr_outlet', 'ts_outlet'].forEach(function (id) {
+        var el = $id(id), keep = el.value;
+        el.innerHTML = '<option value="">Select outlet…</option><option value="ALL">All outlets</option>' + storeOutlets.map(function (o) { return '<option value="' + escapeHtml(o) + '">' + escapeHtml(o) + '</option>'; }).join('');
+        el.value = keep;
+      });
+    }
     // Splits an already outlet-sorted list into [{ outlet, rows }] (one group when not grouping)
-    function outletGroups_(rows) {
-      if (!groupByOutlet_()) return [{ outlet: '', rows: rows }];
+    function outletGroups_(rows, scope) {
+      if (!groupByOutlet_(scope)) return [{ outlet: '', rows: rows }];
       var out = [], idx = {};
       rows.forEach(function (r) { var k = r.outlet || '(No outlet)'; if (!(k in idx)) { idx[k] = out.length; out.push({ outlet: k, rows: [] }); } out[idx[k]].rows.push(r); });
       return out;
@@ -3060,8 +3073,8 @@
       var cg = cls === 'print' ? '<colgroup>' + w.map(function (x) { return '<col style="width:' + (x * 100 / tot).toFixed(2) + '%">'; }).join('') + '</colgroup>' : '';
       var html = '<table class="ts-table">' + cg + '<thead><tr><th>#</th>' + (oc ? '<th>Outlet</th>' : '') +
         SR_HEAD.map(function (h, i) { return '<th' + (i === 4 || i === 5 ? ' class="num"' : '') + '>' + h + '</th>'; }).join('') + '</tr></thead><tbody>';
-      outletGroups_(srRows).forEach(function (g) {
-        if (groupByOutlet_()) html += '<tr class="ts-group"><td colspan="' + n + '">' + escapeHtml(g.outlet) + '  -  ' + g.rows.length + ' pending return' + (g.rows.length === 1 ? '' : 's') + '</td></tr>';
+      outletGroups_(srRows, srScope).forEach(function (g) {
+        if (groupByOutlet_(srScope)) html += '<tr class="ts-group"><td colspan="' + n + '">' + escapeHtml(g.outlet) + '  -  ' + g.rows.length + ' pending return' + (g.rows.length === 1 ? '' : 's') + '</td></tr>';
         g.rows.forEach(function (r, i) {
           html += '<tr><td>' + (i + 1) + '</td>' + (oc ? '<td>' + escapeHtml(r.outlet) + '</td>' : '') + srCells_(r).map(function (v, k) {
             return '<td' + (k === 4 || k === 5 ? ' class="num"' : k === 8 ? ' class="rm"' : '') + '>' + escapeHtml(v) + '</td>';
@@ -3073,7 +3086,7 @@
     function srTotalsText_() {
       var ctn = srRows.reduce(function (s2, r) { return s2 + Number(r.totalCarton || 0); }, 0), sup = {};
       srRows.forEach(function (r) { sup[r.supplier] = 1; });
-      return outletScopeText_() + '  ·  ' + srRows.length + ' pending return' + (srRows.length === 1 ? '' : 's') + ' / ' + ctn + ' cartons  ·  ' + Object.keys(sup).length + ' supplier' + (Object.keys(sup).length === 1 ? '' : 's') + '  ·  as at ' + srStamp;
+      return outletScopeText_(srScope) + '  ·  ' + srRows.length + ' pending return' + (srRows.length === 1 ? '' : 's') + ' / ' + ctn + ' cartons  ·  ' + Object.keys(sup).length + ' supplier' + (Object.keys(sup).length === 1 ? '' : 's') + '  ·  as at ' + srStamp;
     }
     function renderSummaryReport() {
       $id('sr_resultsCard').style.display = 'block';
@@ -3085,10 +3098,12 @@
 
     document.getElementById('sr_runBtn').addEventListener('click', function () {
       var btn = this;
+      if (cat_() !== 'OUTLET' && !$id('sr_outlet').value) { alert('Please select an outlet, or All outlets, before running the report.'); return; }
+      var scope = cat_() === 'OUTLET' ? '' : $id('sr_outlet').value;
       btn.disabled = true; btn.textContent = 'Running...';
-      api_('GET', '/api/summary')
+      api_('GET', '/api/summary' + (scope ? '?' + rptScopeQs_('sr_outlet') : ''))
         .then(function (rows) {
-          summaryRan = true;
+          summaryRan = true; srScope = scope;
           rows.forEach(prepRow_);
           srRows = sortByOutlet_(rows); srStamp = nowStamp_();
           btn.disabled = false; btn.textContent = 'Run';
@@ -3159,8 +3174,8 @@
       var oc = showOutletCol_(), head = ['#'].concat(oc ? ['Outlet'] : [], SR_HEAD);
       var rows = [[{ v: 'Pending Return Summary Report', s: 3 }], [srTotalsText_()], []];
       rows.push(head.map(function (h) { return { v: h, s: 1 }; }));
-      outletGroups_(srRows).forEach(function (g) {
-        if (groupByOutlet_()) rows.push([{ v: g.outlet + '  -  ' + g.rows.length + ' pending return' + (g.rows.length === 1 ? '' : 's'), s: 2 }].concat(head.slice(1).map(function () { return { v: '', s: 2 }; })));
+      outletGroups_(srRows, srScope).forEach(function (g) {
+        if (groupByOutlet_(srScope)) rows.push([{ v: g.outlet + '  -  ' + g.rows.length + ' pending return' + (g.rows.length === 1 ? '' : 's'), s: 2 }].concat(head.slice(1).map(function () { return { v: '', s: 2 }; })));
         g.rows.forEach(function (r, i) {
           rows.push([i + 1].concat(oc ? [r.outlet] : [], srCells_(r).map(function (v, k) { return (k === 4 || k === 5) && v !== '' && !isNaN(Number(v)) ? Number(v) : v; })));
         });
@@ -4476,24 +4491,26 @@
       if (f > t) return { error: 'The From date is after the To date.' };
       return { from: f, to: t, label: tplDate_(f) + ' to ' + tplDate_(t) };
     }
-    var tsMeta = { label: '', status: 'ALL' };
+    var tsMeta = { label: '', status: 'ALL' }, tsScope = '';
     $id('ts_runBtn').addEventListener('click', function () {
       var p = tsPeriod_(); if (p.error) { alert(p.error); return; }
+      if (cat_() !== 'OUTLET' && !$id('ts_outlet').value) { alert('Please select an outlet, or All outlets, before running the report.'); return; }
+      var scope = cat_() === 'OUTLET' ? '' : $id('ts_outlet').value;
       var status = $id('ts_status').value, btn = this;
       setBusy_(btn, null, true, 'Loading...');
-      api_('GET', '/api/transfers?status=' + status + '&from=' + p.from + '&to=' + p.to).then(function (rows) {
+      api_('GET', '/api/transfers?status=' + status + '&from=' + p.from + '&to=' + p.to + (scope ? '&' + rptScopeQs_('ts_outlet') : '')).then(function (rows) {
         setBusy_(btn, null, false, 'Run');
-        tsRows = groupByOutlet_() ? sortByOutlet_(rows) : rows; tsMeta = { label: p.label, status: status };
+        tsScope = scope; tsRows = groupByOutlet_(scope) ? sortByOutlet_(rows) : rows; tsMeta = { label: p.label, status: status };
         renderTsResult();
       }).catch(function (err) { setBusy_(btn, null, false, 'Run'); alert(err && err.message ? err.message : 'Could not load the report.'); });
     });
     function tsTableHtml_(cls) {
-      var oc = showOutletCol_(), gb = groupByOutlet_(), n = 13 + 1 + (oc ? 1 : 0);
+      var oc = showOutletCol_(), gb = groupByOutlet_(tsScope), n = 13 + 1 + (oc ? 1 : 0);
       var w = [2.5].concat(oc ? [7] : [], [9, 13, 9, 6, 3, 14, 8, 6, 6, 6, 6, 6]);
       var tot = w.reduce(function (x, y) { return x + y; }, 0);
       var cg = cls === 'print' ? '<colgroup>' + w.map(function (x) { return '<col style="width:' + (x * 100 / tot).toFixed(2) + '%">'; }).join('') + '</colgroup>' : '';
       var html = '<table class="ts-table">' + cg + '<thead><tr><th>#</th>' + (oc ? '<th>Outlet</th>' : '') + '<th>Invoice / ODO No</th><th>Transfer To</th><th>Dept</th><th>Date</th><th class="num">Ctn</th><th>Remark</th><th>Status</th><th>DO No</th><th>Pickup</th><th>Updated By</th><th>Copy Returned</th><th>Submitted By</th></tr></thead><tbody>';
-      outletGroups_(tsRows).forEach(function (g) {
+      outletGroups_(tsRows, tsScope).forEach(function (g) {
         if (gb) html += '<tr class="ts-group"><td colspan="' + n + '">' + escapeHtml(g.outlet) + '  -  ' + g.rows.length + ' transfer' + (g.rows.length === 1 ? '' : 's') + '</td></tr>';
         g.rows.forEach(function (t, i) {
           var done = t.status === 'COMPLETED', wait = t.status === 'AWAITING_COPY';
@@ -4511,14 +4528,14 @@
     }
     function renderTsResult() {
       $id('ts_resultCard').style.display = 'block';
-      $id('ts_totals').textContent = tsMeta.label + '  ·  ' + (showOutletCol_() ? outletScopeText_() + '  ·  ' : '') + tsTotalsText_();
+      $id('ts_totals').textContent = tsMeta.label + '  ·  ' + (showOutletCol_() ? outletScopeText_(tsScope) + '  ·  ' : '') + tsTotalsText_();
       $id('ts_table').innerHTML = tsRows.length ? tsTableHtml_('screen') : '<div class="list-empty">No transfers found for this selection.</div>';
       $id('ts_printBtn').disabled = $id('ts_csvBtn').disabled = !tsRows.length;
     }
     $id('ts_printBtn').addEventListener('click', function () {
       if (!tsRows.length) return;
       var st = { ALL: 'All statuses', PENDING: 'Pending only', AWAITING_COPY: 'Awaiting Copy-Document only', COMPLETED: 'Completed only' }[tsMeta.status] || '';
-      printRoot_('<h1>Goods Transfer Summary - ' + escapeHtml(tsMeta.label) + '</h1><p>' + escapeHtml(st) + ' &middot; ' + (showOutletCol_() ? escapeHtml(outletScopeText_()) + ' &middot; ' : '') + escapeHtml(tsTotalsText_()) + '</p>' + tsTableHtml_('print'), '@page{ size:A4 landscape; margin:10mm; }');
+      printRoot_('<h1>Goods Transfer Summary - ' + escapeHtml(tsMeta.label) + '</h1><p>' + escapeHtml(st) + ' &middot; ' + (showOutletCol_() ? escapeHtml(outletScopeText_(tsScope)) + ' &middot; ' : '') + escapeHtml(tsTotalsText_()) + '</p>' + tsTableHtml_('print'), '@page{ size:A4 landscape; margin:10mm; }');
     });
     $id('ts_csvBtn').addEventListener('click', function () {
       if (!tsRows.length) return;
@@ -4756,9 +4773,9 @@
     function renderStores_() {
       var cur = viewOutlet_(), mg = cat_() === 'MANAGEMENT';
       $id('st_help').textContent = mg
-        ? 'Choose which store you are working in. Management (Test) is your practice store: entries made there never appear in any outlet’s lists, reports or counts. Pick an outlet to see or enter records for that outlet, or All outlets to view everything (view only).'
-        : 'Choose which outlet you are monitoring, or All outlets to see every outlet together.';
-      var opts = [{ v: '', t: 'All outlets', s: 'Every outlet together, grouped by outlet in the reports (view only)' }];
+        ? 'Choose which store you are working in. Management (Test) is your practice store: entries made there never appear in any outlet’s lists, reports or counts. Pick an outlet to see or enter records for that outlet. To report on one outlet or on all outlets, use the Outlet filter on the Summary Report screens.'
+        : 'Choose which outlet you are monitoring. To report on one outlet or on all outlets, use the Outlet filter on the Summary Report screens.';
+      var opts = [];
       if (mg) opts.unshift({ v: TEST_STORE, t: 'Management (Test)', s: 'Practice store: safe for test entries', tag: 'TEST' });
       storeOutlets.forEach(function (o) { opts.push({ v: o, t: o, s: mg ? 'Work in this outlet’s records' : 'Monitor this outlet' }); });
       $id('st_list').innerHTML = opts.map(function (o) {
