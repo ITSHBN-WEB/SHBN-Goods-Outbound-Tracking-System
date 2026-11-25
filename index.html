@@ -4803,7 +4803,7 @@
       storeOutlets.forEach(function (o) { opts.push({ v: o, t: o, s: mg ? 'Work in this outlet’s records' : 'Monitor this outlet' }); });
       $id('st_list').innerHTML = '<div class="field" style="max-width:360px;"><label>Store</label><select id="st_select">' + opts.map(function (o) {
         return '<option value="' + escapeHtml(o.v) + '"' + (o.v === cur ? ' selected' : '') + '>' + escapeHtml(o.t) + '</option>';
-      }).join('') + '</select></div><div class="btn-row"><button type="button" class="btn-primary" id="st_apply">Apply</button></div><p class="bk-help" id="st_now" style="margin-top:12px;">Currently working in: <b>' + escapeHtml(storeLabel_(cur)) + '</b></p>';
+      }).join('') + '</select></div><div style="margin-top:4px;"><button type="button" class="btn-primary" id="st_apply" style="width:auto;min-width:110px;padding:10px 28px;flex:none;">Apply</button></div><p class="bk-help" id="st_now" style="margin-top:12px;">Currently working in: <b>' + escapeHtml(storeLabel_(cur)) + '</b></p>';
     }
     $id('navStores').addEventListener('click', function () { showScreen('storesScreen'); setActiveNav('navStores'); renderStores_(); });
     $id('st_back').addEventListener('click', function () { showScreen('homeScreen'); });
