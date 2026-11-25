@@ -6,7 +6,7 @@
 //         step 1 (default / action:'complete'): { doNo, pickupDate, updatedBy, attachments? }   PENDING -> COMPLETED
 //         copy-document date (action:'copy'):    { copyReturnedDate, copySubmittedBy, attachments? }   COMPLETED transfers that have none yet
 const { route, HttpError, query, SCOPE_SQL, scopeOf, writeOrigin, ownedIds } = require('../../lib/core');
-const { TRANSFER_COLUMNS, parseTransfer, parseBulkTransfers, MAX_ATTACHMENTS, assertInvoiceFree, resolveOutlet, transferCounts } = require('../../lib/core');
+const { TRANSFER_COLUMNS, parseTransfer, parseBulkTransfers, parseAttachments, MAX_ATTACHMENTS, assertInvoiceFree, resolveOutlet, transferCounts } = require('../../lib/core');
 
 function dateParam(v, label) {
   if (v === undefined || v === '') return null;
@@ -88,6 +88,15 @@ module.exports = route(['GET', 'POST', 'PATCH'], async function (req) {
           WHERE id = ANY($5::bigint[]) AND status = 'PENDING' AND jsonb_array_length(attachments) + $6::int <= ${MAX_ATTACHMENTS}
           RETURNING id::text AS id`,
         [u.doNo, u.pickupDate, u.updatedBy, att, u.ids, n]);
+  // each record's own attachment (one file per record, chosen in the bulk review)
+  if (!copyStep && done.length && req.body && req.body.attachmentsById && typeof req.body.attachmentsById === 'object') {
+    for (const r of done) {
+      const own = parseAttachments(req.body.attachmentsById[r.id]).slice(0, 1);
+      if (own.length) {
+        await query(`UPDATE transfers SET attachments = attachments || $1::jsonb WHERE id = $2 AND jsonb_array_length(attachments) + 1 <= ${MAX_ATTACHMENTS}`, [JSON.stringify(own), r.id]);
+      }
+    }
+  }
   const ok = new Set(done.map((r) => r.id));
   return Object.assign({
     success: true,

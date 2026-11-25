@@ -3736,16 +3736,18 @@
         });
     }
     // Mounts "Attachments (optional)" into a container: pick up to 5 pictures / PDFs. resolve() -> Promise of an array of {url,name,type} ([] when none).
-    function mountAttach_(containerId, prefix) {
+    function mountAttach_(containerId, prefix, opts) {
+      opts = opts || {};
+      var MAXN = opts.max || MAX_ATTACH_BATCH;
       var box = $id(containerId);
       box.className = 'att-box';
-      box.innerHTML = '<label>Attachments <span style="font-weight:400;opacity:.7;">(optional - pictures or PDFs, max 1 MB each, up to ' + MAX_ATTACH_BATCH + ')</span></label>' +
-        '<div class="att-row"><input type="file" id="' + prefix + '_file" accept="image/*,application/pdf" multiple></div>' +
+      box.innerHTML = '<label>' + (opts.label || 'Attachments') + ' <span style="font-weight:400;opacity:.7;">(optional - ' + (MAXN === 1 ? 'one picture or PDF' : 'pictures or PDFs') + ', max 1 MB' + (MAXN === 1 ? '' : ' each, up to ' + MAXN) + ')</span></label>' +
+        '<div class="att-row"><input type="file" id="' + prefix + '_file" accept="image/*,application/pdf"' + (MAXN > 1 ? ' multiple' : '') + '></div>' +
         '<div class="att-info" id="' + prefix + '_info"></div>';
       var input = $id(prefix + '_file'), info = $id(prefix + '_info'), picked = [], note = '';
       function paint() {
         info.className = 'att-info' + (note ? ' err' : '');
-        info.innerHTML = note ? escapeHtml(note) : picked.map(function (a, i) {
+        info.innerHTML = (note ? '<div>' + escapeHtml(note) + '</div>' : '') + picked.map(function (a, i) {
           return '<div>Selected: ' + escapeHtml(a.name) + ' (' + Math.max(1, Math.round(a.blob.size / 1024)) + ' KB) <button type="button" data-i="' + i + '">Remove</button></div>';
         }).join('');
       }
@@ -3753,7 +3755,7 @@
         var files = Array.prototype.slice.call(input.files || []); input.value = '';
         if (!files.length) return;
         note = '';
-        if (picked.length + files.length > MAX_ATTACH_BATCH) { note = 'You can attach up to ' + MAX_ATTACH_BATCH + ' files at a time.'; files = files.slice(0, Math.max(0, MAX_ATTACH_BATCH - picked.length)); }
+        if (picked.length + files.length > MAXN) { note = MAXN === 1 ? 'Only one file can be attached here. Remove the selected one first to choose another.' : 'You can attach up to ' + MAXN + ' files at a time.'; files = files.slice(0, Math.max(0, MAXN - picked.length)); }
         info.className = 'att-info'; info.textContent = 'Preparing...';
         files.reduce(function (p, f) {
           return p.then(function () {
@@ -3775,7 +3777,8 @@
         }
       };
     }
-    var tbrAttach = mountAttach_('tbr_attach', 'tbr');
+    var tbrAttach = mountAttach_('tbr_attach', 'tbr', { max: 1, label: 'DO document (shared by all)' });
+    var tbRec = {};     // per-record attachment chosen in the bulk review: transfer id -> { blob, name, type }
     var abrAttach = mountAttach_('abr_attach', 'abr');
 
     // ---------- label (TPL to Outlet) ----------
@@ -3999,21 +4002,30 @@
       tbReview = trPending.filter(function (t) { return tbSel[t.id]; });
       if (!tbReview.length) return;
       if (tbReview.length > 200) { alert('Please select 200 transfers or fewer at a time.'); return; }
-      fdBulk = ''; trStatus_('tbr_status', '', ''); tbrAttach.reset();
+      fdBulk = ''; trStatus_('tbr_status', '', ''); tbrAttach.reset(); tbRec = {};
       renderTbReview(); trNav_('trBulkReviewScreen');
     });
     function renderTbReview() {
       $id('tbr_count').textContent = tbReview.length;
       $id('tbr_list').innerHTML = tbReview.map(function (t) {
         return '<div class="bk-row" style="cursor:default;" data-id="' + escapeHtml(t.id) + '"><div class="bk-row-main"><div class="bk-rpo">' + escapeHtml(t.invoiceNo) + '</div>' +
-          '<div class="bk-meta">' + trLine_(t) + (t.remark ? ' &middot; ' + escapeHtml(t.remark) : '') + '</div></div>' +
+          '<div class="bk-meta">' + trLine_(t) + (t.remark ? ' &middot; ' + escapeHtml(t.remark) : '') + '</div>' +
+          (tbRec[t.id] ? '<div class="bk-meta" style="color:#5eead4;">&#128206; ' + escapeHtml(tbRec[t.id].name) + ' (' + Math.max(1, Math.round(tbRec[t.id].blob.size / 1024)) + ' KB)</div>' : '') + '</div>' +
+          '<label class="tr-item-x tbr-attach-btn" style="cursor:pointer;color:#7dd3fc;border-color:rgba(125,211,252,.4);background:rgba(56,189,248,.08);">&#128206; ' + (tbRec[t.id] ? 'Change' : 'Attach') + '<input type="file" class="tbr-rec-file" data-id="' + escapeHtml(t.id) + '" accept="image/*,application/pdf" style="display:none;"></label>' +
           '<button type="button" class="tr-item-x" data-id="' + escapeHtml(t.id) + '">Remove</button></div>';
       }).join('');
       $id('tbr_submitBtn').textContent = 'Update ' + tbReview.length + (tbReview.length === 1 ? ' Transfer' : ' Transfers');
     }
+    $id('tbr_list').addEventListener('change', function (e) {          // this record's own attachment (one file)
+      var inp = e.target; if (!inp || !inp.classList || !inp.classList.contains('tbr-rec-file')) return;
+      var id = inp.getAttribute('data-id'), f = inp.files && inp.files[0]; inp.value = ''; if (!f) return;
+      trStatus_('tbr_status', '', '');
+      prepareAttachment_(f).then(function (a) { tbRec[id] = a; renderTbReview(); })
+        .catch(function (err) { trStatus_('tbr_status', 'error', (err && err.message) || 'Could not use that file.'); });
+    });
     $id('tbr_list').addEventListener('click', function (e) {
-      var b = e.target.closest && e.target.closest('.tr-item-x'); if (!b) return;
-      var id = b.getAttribute('data-id'); delete tbSel[id]; delete fdSel[id];
+      var b = e.target.closest && e.target.closest('button.tr-item-x'); if (!b) return;
+      var id = b.getAttribute('data-id'); delete tbSel[id]; delete fdSel[id]; delete tbRec[id];
       tbReview = tbReview.filter(function (t) { return t.id !== id; });
       if (!tbReview.length) { backToTbSelection_(); return; }
       renderTbReview();
@@ -4029,10 +4041,16 @@
       if (!by) { trStatus_('tbr_status', 'error', 'Please enter who updated these transfers.'); $id('tbr_updatedBy').focus(); return; }
       var btn = this, label = btn.textContent;
       trStatus_('tbr_status', '', '');
-      setBusy_(btn, 'tbr_progress', true, tbrAttach.hasFile() ? 'Uploading...' : 'Updating...');
+      var recIds = tbReview.map(function (t) { return t.id; }).filter(function (id) { return tbRec[id]; });
+      setBusy_(btn, 'tbr_progress', true, (tbrAttach.hasFile() || recIds.length) ? 'Uploading...' : 'Updating...');
+      var byId = {};
       tbrAttach.resolve().then(function (att) {
+        return recIds.reduce(function (p, id) {
+          return p.then(function () { return uploadAttachment_(tbRec[id]).then(function (u) { byId[id] = [u]; }); });
+        }, Promise.resolve()).then(function () { return att; });
+      }).then(function (att) {
         btn.textContent = 'Updating...';
-        return api_('PATCH', '/api/transfers', { ids: tbReview.map(function (t) { return t.id; }), doNo: doNo, pickupDate: pickup, updatedBy: by, attachments: att });
+        return api_('PATCH', '/api/transfers', { ids: tbReview.map(function (t) { return t.id; }), doNo: doNo, pickupDate: pickup, updatedBy: by, attachments: att, attachmentsById: byId });
       }).then(function (res) {
         setBusy_(btn, 'tbr_progress', false, label);
         var skipped = tbReview.filter(function (t) { return res.skipped.indexOf(t.id) !== -1; }).map(function (t) { return t.invoiceNo; });
@@ -4041,7 +4059,7 @@
         var fromFind = !!fdBulk; tbReview.forEach(function (t) { if (res.skipped.indexOf(t.id) === -1) delete fdSel[t.id]; });
         tbSel = {}; tbReview = [];
         ['tbr_doNo', 'tbr_pickup', 'tbr_updatedBy'].forEach(function (id) { $id(id).value = ''; });
-        $id('tb_search').value = ''; tbrAttach.reset();
+        $id('tb_search').value = ''; tbrAttach.reset(); tbRec = {};
         loadTrPending();
         if (fromFind) { fdBulk = ''; goFind_(msg, skipped.length ? 'error' : 'ok'); return; }
         showScreen('trPendingScreen'); setTpMode(true);
@@ -4532,7 +4550,7 @@
     $id('fd_btnPend').addEventListener('click', function () {
       var list = fdGroups_().pend; if (!list.length) return;
       if (list.length > 200) { alert('Please select 200 transfers or fewer at a time.'); return; }
-      tbReview = list; fdBulk = 'pend'; trStatus_('tbr_status', '', ''); tbrAttach.reset();
+      tbReview = list; fdBulk = 'pend'; trStatus_('tbr_status', '', ''); tbrAttach.reset(); tbRec = {};
       renderTbReview(); trNav_('trBulkReviewScreen');
     });
     $id('fd_btnAwait').addEventListener('click', function () {

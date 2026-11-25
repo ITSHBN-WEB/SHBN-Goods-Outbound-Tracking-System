@@ -168,7 +168,13 @@ module.exports = route(['PUT', 'PATCH', 'DELETE'], async function (req) {
   if (!rows.length || !rows[0].n) throw await whyNot(id, 'PENDING');
   const urls = (Array.isArray(rows[0].attachments) ? rows[0].attachments : []).map((x) => x && x.url).filter((u) => typeof u === 'string' && /^https:\/\//.test(u));
   if (urls.length) {
-    try { await require('@vercel/blob').del(urls); } catch (e) { console.error('attachment cleanup failed', e && e.message); }
+    try {
+      // a bulk update shares one DO document between several transfers: keep any file another transfer still points to
+      const still = await query(`SELECT DISTINCT a->>'url' AS url FROM transfers t, jsonb_array_elements(t.attachments) a WHERE a->>'url' = ANY($1::text[])`, [urls]);
+      const keep = new Set(still.map((x) => x.url));
+      const del = urls.filter((u) => !keep.has(u));
+      if (del.length) await require('@vercel/blob').del(del);
+    } catch (e) { console.error('attachment cleanup failed', e && e.message); }
   }
   return Object.assign({ success: true }, await transferCounts(scopeOf(req)));
 });
