@@ -996,7 +996,6 @@
       <button type="button" class="side-link" id="navTrFind"><span class="nav-icon">&#128269;</span><span>Find Transfer</span></button>
       <button type="button" class="side-link" id="navTrNew"><span class="nav-icon">⊕</span><span>New Transfer</span></button>
       <button type="button" class="side-link" id="navTrPending"><span class="nav-icon">⇄</span><span>Pending Transfers</span></button>
-      <button type="button" class="side-link" id="navTrAwait"><span class="nav-icon">⌛</span><span>Awaiting Copy-Document</span></button>
       <button type="button" class="side-link" id="navTrCompleted"><span class="nav-icon">✓</span><span>Completed Transfers</span></button>
       <button type="button" class="side-link" id="navTrSummary"><span class="nav-icon">≣</span><span>Transfer Summary</span></button>
       <div class="side-group">SYSTEM</div><div class="side-group-gap" style="display:none;"></div>
@@ -1073,18 +1072,12 @@
       </section>
 
       <div class="section-kicker dash-sec">GOODS TRANSFER</div>
-      <section class="dashboard-metrics three">
+      <section class="dashboard-metrics">
         <div class="metric-card">
           <div class="metric-top"><span class="metric-icon">⇄</span><span class="metric-label">PENDING INTER-OUTLET TRANSFERS</span></div>
           <div class="metric-value" id="dashboardTrPendingCount">—</div>
           <div class="metric-foot">Transfers awaiting DO No / pickup</div>
           <button class="view-pending-link" type="button" id="dashboardViewTrPending">View pending transfers <span aria-hidden="true">→</span></button>
-        </div>
-        <div class="metric-card">
-          <div class="metric-top"><span class="metric-icon">⌛</span><span class="metric-label">AWAITING COPY-DOCUMENT</span></div>
-          <div class="metric-value" id="dashboardTrAwaitCount">—</div>
-          <div class="metric-foot">Picked up, copy-document not yet returned</div>
-          <button class="view-pending-link" type="button" id="dashboardViewTrAwait">View awaiting copy-document <span aria-hidden="true">→</span></button>
         </div>
         <div class="metric-card metric-card-accent">
           <div class="metric-top"><span class="metric-icon">＋</span><span class="metric-label">QUICK ACTION</span></div>
@@ -1363,7 +1356,7 @@
       <span class="back-link" id="fd_back">&larr; Back</span>
       <div class="card">
         <h2>Find Transfer</h2>
-        <p class="bk-help" style="margin-top:0;">Type an Invoice / ODO No, DO No, outlet or department. It finds the record whatever its status. Tick the Pending or Awaiting ones to update them together - your ticks stay when you search again.</p>
+        <p class="bk-help" style="margin-top:0;">Type an Invoice / ODO No, DO No, outlet or department. It finds the record whatever its status. Tick the Pending ones (DO No & Pickup) or the Completed ones that still need a copy-document date to update them together - your ticks stay when you search again.</p>
         <div class="field" style="margin-bottom:10px;"><input type="text" id="fd_search" placeholder="Invoice / ODO No, DO No, RPO No, supplier, brand or outlet" autocomplete="off"></div>
         <button type="button" class="btn-secondary bk-small" id="fd_clearSearch">Clear</button>
       </div>
@@ -1383,7 +1376,7 @@
         <div id="fd_retWrap" style="display:none;margin-top:18px;"><h2 style="margin-bottom:10px;">Pending Supplier Returns (<span id="fd_retCount">0</span>)</h2><div id="fd_retList"></div></div>
         <div class="bk-bar" id="fd_bar" style="display:none;">
           <span id="fd_barCount">0 selected</span>
-          <div class="fd-btns"><button type="button" class="btn-primary" id="fd_btnPend" style="display:none;">Update DO No &amp; Pickup</button><button type="button" class="btn-success" id="fd_btnAwait" style="display:none;">Copy-Document Returned</button></div>
+          <div class="fd-btns"><button type="button" class="btn-primary" id="fd_btnPend" style="display:none;">Update DO No &amp; Pickup</button><button type="button" class="btn-success" id="fd_btnAwait" style="display:none;">Copy-Document Date</button></div>
         </div>
       </div>
     </div>
@@ -1504,7 +1497,7 @@
         <div id="tbr_list"></div>
       </div>
       <div class="card">
-        <h2>DO No &amp; Pickup Details <span style="font-weight:500;color:#91a2ba;font-size:13px;">(applies to all - they move to Awaiting Copy-Document)</span></h2>
+        <h2>DO No &amp; Pickup Details <span style="font-weight:500;color:#91a2ba;font-size:13px;">(applies to all - they become Completed Transfers)</span></h2>
         <div class="row2">
           <div class="field"><label>DO No</label><input type="text" id="tbr_doNo" placeholder="DO number" autocomplete="off"></div>
           <div class="field"><label>Pickup Date</label><input type="date" id="tbr_pickup"></div>
@@ -1520,60 +1513,7 @@
       </div>
     </div>
 
-    <!-- ============ GOODS TRANSFER: AWAITING COPY-DOCUMENT ============ -->
-    <div id="trAwaitScreen" style="display:none;">
-      <span class="back-link" id="aw_back">&larr; Back</span>
-      <div class="seg" role="tablist" aria-label="Update mode">
-        <button type="button" class="seg-btn active" id="awModeSingle" role="tab">Update One</button>
-        <button type="button" class="seg-btn" id="awModeBulk" role="tab">Bulk Update</button>
-      </div>
-
-      <div id="awSingle">
-        <div class="card">
-          <h2>Search Awaiting Copy-Document</h2>
-          <div class="search-row"><input type="text" id="aw_search" placeholder="Invoice / ODO No, DO No, outlet or department" autocomplete="off"></div>
-        </div>
-        <div class="card">
-          <h2>Awaiting Copy-Document (<span id="aw_count">0</span>)</h2>
-          <p class="bk-help" style="margin-top:0;">Picked up already - waiting for the signed copy-document to come back. Longest waiting first.</p>
-          <div id="aw_list"></div>
-          <div class="list-empty" id="aw_empty" style="display:none;">Nothing is waiting for a copy-document.</div>
-        </div>
-      </div>
-
-      <div id="awBulk" style="display:none;">
-        <div class="card">
-          <h2>Bulk Update</h2>
-          <p class="bk-help">Search an Invoice / ODO No, tick it, press Clear, then search the next one. Everything you tick stays selected.</p>
-          <div class="field" style="margin-bottom:10px;"><input type="text" id="ab_search" placeholder="Search Invoice / ODO No" autocomplete="off"></div>
-          <button type="button" class="btn-secondary bk-small" id="ab_clearSearch">Clear</button>
-        </div>
-        <div class="card">
-          <div class="bk-toolbar">
-            <h2 style="border:0;margin:0;padding:0;">Awaiting (<span id="ab_shown">0</span>)</h2>
-            <div class="bk-toolbar-btns">
-              <button type="button" class="btn-secondary bk-small" id="ab_tickAll">Tick all shown</button>
-              <button type="button" class="btn-secondary bk-small" id="ab_untickAll">Untick all shown</button>
-            </div>
-          </div>
-          <div id="ab_list"></div>
-          <div class="list-empty" id="ab_empty" style="display:none;">Nothing is waiting for a copy-document.</div>
-        </div>
-        <div class="card" id="ab_selCard" style="display:none;">
-          <div class="bk-toolbar">
-            <h2 style="border:0;margin:0;padding:0;">Selected (<span id="ab_selN">0</span>)</h2>
-            <button type="button" class="btn-secondary bk-small" id="ab_clearSel">Clear selection</button>
-          </div>
-          <div id="ab_chips" class="bk-quick" style="margin-top:0;"></div>
-        </div>
-        <div class="bk-bar" id="ab_bar" style="display:none;">
-          <span id="ab_barCount">0 selected</span>
-          <button type="button" class="btn-primary" id="ab_continueBtn" disabled>Continue</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- ============ GOODS TRANSFER: AWAITING COPY-DOCUMENT - BULK REVIEW ============ -->
+    <!-- ============ GOODS TRANSFER: COPY-DOCUMENT - BULK REVIEW ============ -->
     <div id="trAwaitBulkReviewScreen" style="display:none;">
       <span class="back-link" id="abr_back">&larr; Back to selection</span>
       <div class="card">
@@ -1581,7 +1521,7 @@
         <div id="abr_list"></div>
       </div>
       <div class="card">
-        <h2>Returned Copy-Document <span style="font-weight:500;color:#91a2ba;font-size:13px;">(applies to all - they move to Completed)</span></h2>
+        <h2>Returned Copy-Document <span style="font-weight:500;color:#91a2ba;font-size:13px;">(applies to all selected)</span></h2>
         <div class="row2">
           <div class="field"><label>Returned Copy-Document Date</label><input type="date" id="abr_date"></div>
           <div class="field"><label>Submitted By</label><input type="text" id="abr_by" placeholder="Enter your name" autocomplete="off"></div>
@@ -1591,12 +1531,12 @@
         <div class="progress" id="abr_progress"><i></i></div>
         <div class="btn-row">
           <button class="btn-secondary" id="abr_backBtn" type="button">Back</button>
-          <button class="btn-success" id="abr_submitBtn" type="button">Complete</button>
+          <button class="btn-success" id="abr_submitBtn" type="button">Save</button>
         </div>
       </div>
     </div>
 
-    <!-- ============ GOODS TRANSFER: DETAIL (pending, awaiting copy-document or completed) ============ -->
+    <!-- ============ GOODS TRANSFER: DETAIL (pending or completed) ============ -->
     <div id="trDetailScreen" style="display:none;">
       <span class="back-link" id="td_back">&larr; Back</span>
       <div class="card">
@@ -1610,11 +1550,6 @@
           </div>
         </div>
         <div class="td-grid" id="td_grid"></div>
-        <div id="td_delBox" style="display:none;margin-top:14px;padding:14px;border:1px solid rgba(248,113,113,.5);border-radius:12px;background:rgba(248,113,113,.07);">
-          <div class="field" style="margin-bottom:10px;"><label>Reason for deleting this transfer *</label><textarea id="td_delReason" rows="2" maxlength="300" placeholder="Why is this transfer being deleted?"></textarea></div>
-          <div class="btn-row"><button type="button" class="btn-danger" id="td_delConfirm">Confirm Delete</button><button type="button" class="btn-secondary" id="td_delCancel">Cancel</button></div>
-          <div class="status" id="td_delStatus"></div>
-        </div>
       </div>
 
       <div class="card" id="td_attCard">
@@ -1638,7 +1573,6 @@
         <div id="td_status"></div>
         <div class="progress" id="td_progress"><i></i></div>
         <div class="btn-row">
-          <button class="btn-secondary" id="td_undoBtn" type="button" style="display:none;">Back to Pending</button>
           <button class="btn-success" id="td_saveBtn" type="button">Update</button>
         </div>
       </div>
@@ -1653,9 +1587,13 @@
         <div id="td_cstatus"></div>
         <div class="progress" id="td_cprogress"><i></i></div>
         <div class="btn-row">
-          <button class="btn-secondary" id="td_undoCopyBtn" type="button" style="display:none;">Back to Awaiting Copy-Document</button>
           <button class="btn-secondary" id="td_revertBtn" type="button" style="display:none;">Revert to Pending</button>
-          <button class="btn-success" id="td_copySaveBtn" type="button">Complete Transfer</button>
+          <button class="btn-success" id="td_copySaveBtn" type="button">Save Copy-Document Date</button>
+        </div>
+        <div id="td_revBox" style="display:none;margin-top:14px;padding:14px;border:1px solid rgba(251,191,36,.5);border-radius:12px;background:rgba(251,191,36,.07);">
+          <div class="field" style="margin-bottom:10px;"><label>Reason for reverting this transfer to Pending *</label><textarea id="td_revReason" rows="2" maxlength="300" placeholder="Why is this completed transfer being reverted?"></textarea></div>
+          <div class="btn-row"><button type="button" class="btn-danger" id="td_revConfirm">Confirm Revert</button><button type="button" class="btn-secondary" id="td_revCancel">Cancel</button></div>
+          <div class="status" id="td_revStatus"></div>
         </div>
       </div>
     </div>
@@ -1669,6 +1607,7 @@
       </div>
       <div class="card">
         <h2>Completed Inter-Outlet Transfers (<span id="tc_count">0</span>)</h2>
+        <div class="field" style="max-width:340px;margin-bottom:12px;"><label>Show</label><select id="tc_filter"><option value="ALL">All completed</option><option value="NOCOPY">Copy-document not returned yet</option><option value="COPY">Copy-document returned</option></select></div>
         <div id="tc_list"></div>
         <div class="list-empty" id="tc_empty" style="display:none;">No completed transfers found.</div>
         <p class="bk-help" id="tc_note" style="margin:12px 0 0;display:none;">Showing the latest 200. Use the search or the Summary Report to find older ones.</p>
@@ -1688,7 +1627,7 @@
         <div class="row2">
           <div class="field" id="ts_monthWrap"><label>Month</label><input type="month" id="ts_month"></div>
           <div class="field" id="ts_statusWrap"><label>Show</label>
-            <select id="ts_status"><option value="ALL">All (Pending, Awaiting &amp; Completed)</option><option value="PENDING">Pending only</option><option value="AWAITING_COPY">Awaiting Copy-Document only</option><option value="COMPLETED">Completed only</option></select>
+            <select id="ts_status"><option value="ALL">All (Pending &amp; Completed)</option><option value="PENDING">Pending only</option><option value="COMPLETED">Completed (all)</option><option value="COMPLETED_NOCOPY">Completed - copy-document not returned</option><option value="COMPLETED_COPY">Completed. Copy-Document Returned</option></select>
           </div>
         </div>
         <div class="row2" id="ts_rangeWrap" style="display:none;">
@@ -2098,7 +2037,7 @@
 
     // api_('GET', '/api/returns')  /  api_('POST', '/api/returns', {entries: [...]})
     // Resolves with the parsed JSON, rejects with Error(message) on any failure.
-    function isAdmin_() { return cat_() === 'OUTLET' || cat_() === 'MANAGEMENT'; }     // delete / remove attachments / edit awaiting: everyone except Head Office
+    function isAdmin_() { return cat_() === 'OUTLET' || cat_() === 'MANAGEMENT'; }     // delete / remove attachments / edit completed: everyone except Head Office
     function authHeaders_(headers) {
       if (session_) headers['Authorization'] = 'Bearer ' + session_.token;
       if (Date.now() - lastActive_ < ACTIVE_WINDOW_MS) headers['X-User-Active'] = '1';     // only real use keeps the session alive
@@ -2516,7 +2455,7 @@
 
     // ---------- Navigation ----------
     function setActiveNav(id) {
-      ['navDashboard', 'navNewReturn', 'navUpdateReturn', 'navPickedUp', 'navSummary', 'navTrFind', 'navTrNew', 'navTrPending', 'navTrAwait', 'navTrCompleted', 'navTrSummary', 'navStores', 'navAccounts', 'navSuppliers', 'navDeleted', 'navSupLog'].forEach(function (navId) {
+      ['navDashboard', 'navNewReturn', 'navUpdateReturn', 'navPickedUp', 'navSummary', 'navTrFind', 'navTrNew', 'navTrPending', 'navTrCompleted', 'navTrSummary', 'navStores', 'navAccounts', 'navSuppliers', 'navDeleted', 'navSupLog'].forEach(function (navId) {
         var el = document.getElementById(navId);
         if (el) el.classList.toggle('active', navId === id);
       });
@@ -2526,7 +2465,7 @@
 
     function showScreen(id) {
       ['homeScreen', 'pickedUpScreen', 'newReturnScreen', 'updateListScreen', 'updateDetailScreen', 'bulkReviewScreen', 'summaryScreen',
-       'trFindScreen', 'trNewScreen', 'trResultScreen', 'trLabelScreen', 'trPendingScreen', 'trBulkReviewScreen', 'trAwaitScreen', 'trAwaitBulkReviewScreen', 'trDetailScreen', 'trCompletedScreen', 'trSummaryScreen', 'storesScreen', 'accountsScreen', 'suppliersScreen', 'auditScreen'].forEach(function (s) {
+       'trFindScreen', 'trNewScreen', 'trResultScreen', 'trLabelScreen', 'trPendingScreen', 'trBulkReviewScreen', 'trAwaitBulkReviewScreen', 'trDetailScreen', 'trCompletedScreen', 'trSummaryScreen', 'storesScreen', 'accountsScreen', 'suppliersScreen', 'auditScreen'].forEach(function (s) {
         document.getElementById(s).style.display = (s === id) ? 'block' : 'none';
       });
       if (id === 'homeScreen') { setActiveNav('navDashboard'); if (typeof loadDashTransfers_ === 'function') loadDashTransfers_(); }
@@ -2537,7 +2476,7 @@
       else if (id === 'trFindScreen') setActiveNav('navTrFind');
       else if (id === 'trNewScreen' || id === 'trResultScreen') setActiveNav('navTrNew');
       else if (id === 'trPendingScreen' || id === 'trBulkReviewScreen' || id === 'trDetailScreen') setActiveNav('navTrPending');
-      else if (id === 'trAwaitScreen' || id === 'trAwaitBulkReviewScreen') setActiveNav('navTrAwait');
+      else if (id === 'trAwaitBulkReviewScreen') setActiveNav('navTrCompleted');
       else if (id === 'trCompletedScreen') setActiveNav('navTrCompleted');
       else if (id === 'trSummaryScreen') setActiveNav('navTrSummary');
       showStatus('statusBanner', '', '');
@@ -2552,10 +2491,6 @@
     document.getElementById('dashboardViewTrPending').addEventListener('click', function () {
       trNav_('trPendingScreen'); loadTrPending();
       var search = document.getElementById('tp_search'); if (search) search.focus();
-    });
-    document.getElementById('dashboardViewTrAwait').addEventListener('click', function () {
-      trNav_('trAwaitScreen'); loadTrAwait();
-      var search = document.getElementById('aw_search'); if (search) search.focus();
     });
     document.getElementById('dashboardViewPending').addEventListener('click', function () {
       showScreen('updateListScreen');
@@ -2770,7 +2705,6 @@
         if (quiet === true && sig === dashTrSig) return;
         dashTrSig = sig;
         document.getElementById('dashboardTrPendingCount').textContent = Number(d.pendingCount || 0).toLocaleString();
-        document.getElementById('dashboardTrAwaitCount').textContent = Number(d.awaitingCount || 0).toLocaleString();
         renderRecentTransfers_(d.recent || []);
       }).catch(function () {
         if (!dashTrSig) wrap.innerHTML = '<div class="recent-empty">Recent transfers are temporarily unavailable (has transfers.sql been run?).</div>';
@@ -2780,13 +2714,13 @@
       var wrap = document.getElementById('recentTransferList');
       if (!list.length) { wrap.innerHTML = '<div class="recent-empty">No goods transfers recorded yet.</div>'; return; }
       wrap.innerHTML = list.map(function (t) {
-        var done = t.status === 'COMPLETED', wait = t.status === 'AWAITING_COPY';
-        var date = done ? (t.dateCopyUpdated || t.dateUpdated || t.dateSubmitted) : wait ? (t.dateUpdated || t.dateSubmitted) : t.dateSubmitted;
+        var done = t.status === 'COMPLETED';
+        var date = done ? (t.dateCopyUpdated || t.dateUpdated || t.dateSubmitted) : t.dateSubmitted;
         return '<div class="recent-activity-item">' +
           '<div class="recent-activity-icon tr">&#8644;</div>' +
           '<div><div class="recent-activity-title">Goods transfer &middot; ' + escapeHtml(t.invoiceNo) + '</div>' +
           '<div class="recent-activity-subtitle">' + escapeHtml(t.transferTo) + ' &middot; ' + escapeHtml(t.department) + ' &middot; ' + escapeHtml(t.totalCarton) + ' ctn' + (t.doNo ? ' &middot; DO ' + escapeHtml(t.doNo) : '') + '</div>' +
-          '<span class="recent-status' + (done ? ' done' : wait ? ' wait' : '') + '">' + (done ? 'COMPLETED' : wait ? 'AWAITING COPY-DOCUMENT' : 'PENDING') + '</span></div>' +
+          '<span class="recent-status' + (done ? ' done' : '') + '">' + (done ? (t.copyReturnedDate ? 'COMPLETED · COPY-DOCUMENT RETURNED' : 'COMPLETED') : 'PENDING') + '</span></div>' +
           '<div class="recent-activity-date">' + escapeHtml(date || 'Date unavailable') + '</div>' +
           '</div>';
       }).join('');
@@ -3714,12 +3648,12 @@
     var TPL_FROM = 'SHBN';
     var MAX_UPLOAD_BYTES = 1024 * 1024;     // 1 MB per attachment
     var outlets = [];                           // [{code, name, hay, rank}]
-    var trPending = [], trAwaiting = [], trCompleted = [], trCurrent = null, trLast = null;
+    var trPending = [], trCompleted = [], trCurrent = null, trLast = null;
     var trLabelBack = null, tbSel = {}, tbReview = [], abSel = {}, abReview = [], tsRows = [];
-    var trSigs = { pending: '', awaiting: '', completed: '' };
+    var trSigs = { pending: '', completed: '' };
     var fdSel = {}, fdItems = [], fdRets = [], fdQuery = '', fdSeq = 0, fdTimer, fdBulk = '', trFromFind = false;
     var MAX_ATTACH_TOTAL = 10, MAX_ATTACH_BATCH = 5;
-    var TR_SCREENS = ['trFindScreen', 'trNewScreen', 'trResultScreen', 'trLabelScreen', 'trPendingScreen', 'trBulkReviewScreen', 'trAwaitScreen', 'trAwaitBulkReviewScreen', 'trDetailScreen', 'trCompletedScreen', 'trSummaryScreen'];
+    var TR_SCREENS = ['trFindScreen', 'trNewScreen', 'trResultScreen', 'trLabelScreen', 'trPendingScreen', 'trBulkReviewScreen', 'trAwaitBulkReviewScreen', 'trDetailScreen', 'trCompletedScreen', 'trSummaryScreen'];
 
     function loadOutlets() {
       api_('GET', '/api/transfers?view=outlets')
@@ -3966,15 +3900,6 @@
         renderTrPending(); tbRender(); refreshDeptList_();
       });
     }
-    function loadTrAwait() {
-      return api_('GET', '/api/transfers?status=AWAITING_COPY').then(function (list) {
-        trSigs.awaiting = JSON.stringify(list);
-        trAwaiting = list;
-        var ids = {}; list.forEach(function (x) { ids[x.id] = true; });
-        Object.keys(abSel).forEach(function (id) { if (!ids[id]) delete abSel[id]; });
-        renderTrAwait(); abRender();
-      });
-    }
     function loadTrCompleted() {
       var q = $id('tc_search').value.trim();
       return api_('GET', '/api/transfers?status=COMPLETED' + (q ? '&q=' + encodeURIComponent(q) : '')).then(function (list) {
@@ -3984,16 +3909,14 @@
     }
 
     function attCount_(t) { return (t.attachments && t.attachments.length) || 0; }
-    // opts.kind: 'await' | 'done' (default = pending)
+    // opts.kind: 'done' (default = pending)
     function trItemHtml_(t, opts) {
       var kind = (opts && opts.kind) || 'pending', clip = attCount_(t) ? ' &middot; &#128206;' + attCount_(t) : '';
       var meta = trLine_(t), badge, cls = '';
-      if (kind === 'await') {
-        meta += ' &middot; DO ' + escapeHtml(t.doNo || '') + (t.pickupDate ? ' &middot; picked up ' + escapeHtml(fmtDateLong(t.pickupDate)) : '') + clip;
-        badge = 'AWAITING COPY'; cls = ' wait-badge';
-      } else if (kind === 'done') {
+      if (kind === 'done') {
         meta += ' &middot; DO ' + escapeHtml(t.doNo || '') + clip;
-        badge = t.copyReturnedDate ? 'Copy returned ' + fmtDateLong(t.copyReturnedDate) : 'COMPLETED'; cls = ' done-badge';
+        meta += t.copyReturnedDate ? ' &middot; copy-document returned ' + escapeHtml(fmtDateLong(t.copyReturnedDate)) : ' &middot; copy-document not returned yet';
+        badge = t.copyReturnedDate ? 'COMPLETED · COPY RETURNED' : 'COMPLETED'; cls = ' done-badge';
       } else {
         meta += clip; badge = 'PENDING';
       }
@@ -4113,7 +4036,7 @@
       }).then(function (res) {
         setBusy_(btn, 'tbr_progress', false, label);
         var skipped = tbReview.filter(function (t) { return res.skipped.indexOf(t.id) !== -1; }).map(function (t) { return t.invoiceNo; });
-        var msg = 'Moved ' + res.updated.length + ' transfer' + (res.updated.length === 1 ? '' : 's') + ' to Awaiting Copy-Document (DO ' + doNo.toUpperCase() + ').';
+        var msg = 'Completed ' + res.updated.length + ' transfer' + (res.updated.length === 1 ? '' : 's') + ' (DO ' + doNo.toUpperCase() + ') - now in Completed Transfers.';
         if (skipped.length) msg += ' Skipped ' + skipped.length + ' (already updated or removed by someone else, or too many attachments): ' + skipped.join(', ') + '.';
         var fromFind = !!fdBulk; tbReview.forEach(function (t) { if (res.skipped.indexOf(t.id) === -1) delete fdSel[t.id]; });
         tbSel = {}; tbReview = [];
@@ -4129,8 +4052,8 @@
       });
     });
 
-    // ---------- Detail: PENDING (enter DO No + pickup), AWAITING_COPY (enter copy-document return), COMPLETED (correct / undo) ----------
-    var TD_BUTTONS = ['td_editBtn', 'td_deleteBtn', 'td_saveBtn', 'td_undoBtn', 'td_copySaveBtn', 'td_undoCopyBtn', 'td_revertBtn'];
+    // ---------- Detail: PENDING (enter DO No + pickup -> COMPLETED), COMPLETED (copy-document date, corrections, revert) ----------
+    var TD_BUTTONS = ['td_editBtn', 'td_deleteBtn', 'td_saveBtn', 'td_copySaveBtn', 'td_revertBtn'];
     function renderTdAttachments_(t) {
       var list = t.attachments || [];
       $id('td_attN').textContent = list.length;
@@ -4144,60 +4067,58 @@
     }
     function openTrDetail(t, fromFind) {
       trCurrent = t; trFromFind = !!fromFind;
-      var pend = t.status === 'PENDING', wait = t.status === 'AWAITING_COPY', done = t.status === 'COMPLETED';
+      var pend = t.status === 'PENDING', done = t.status === 'COMPLETED';
       $id('td_title').textContent = t.invoiceNo;
       var badge = $id('td_badge');
-      badge.textContent = done ? 'COMPLETED' : wait ? 'AWAITING COPY-DOCUMENT' : 'PENDING';
-      badge.className = 'pending-badge' + (done ? ' done-badge' : wait ? ' wait-badge' : '');
+      badge.textContent = done ? (t.copyReturnedDate ? 'COMPLETED · COPY-DOCUMENT RETURNED' : 'COMPLETED') : 'PENDING';
+      badge.className = 'pending-badge' + (done ? ' done-badge' : '');
       var it = function (l, v) { return '<div class="it"><span>' + l + '</span><b>' + escapeHtml(v || '—') + '</b></div>'; };
       var extra = it('Submitted', t.dateSubmitted);
       if (!pend) extra += it('DO No', t.doNo) + it('Pickup Date', t.pickupDate ? fmtDateLong(t.pickupDate) : '') + it('Updated By', t.updatedBy);
-      if (done) extra += it('Copy-Document Returned', t.copyReturnedDate ? fmtDateLong(t.copyReturnedDate) : '') + it('Submitted By', t.copySubmittedBy) + it('Completed', t.dateCopyUpdated);
+      if (done) extra += it('Copy-Document Returned', t.copyReturnedDate ? fmtDateLong(t.copyReturnedDate) : '') + it('Copy-Document Submitted By', t.copySubmittedBy) + it('Copy-Document Updated', t.dateCopyUpdated);
       $id('td_grid').innerHTML = trGridHtml_(t, extra);
-      $id('td_editBtn').style.display = (pend || (wait && isAdmin_())) ? '' : 'none';
-      $id('td_deleteBtn').style.display = (pend && isAdmin_()) ? '' : 'none'; $id('td_delBox').style.display = 'none';
+      $id('td_editBtn').style.display = pend ? '' : 'none';
+      $id('td_deleteBtn').style.display = (pend && isAdmin_()) ? '' : 'none';
       renderTdAttachments_(t); $id('td_attFile').value = ''; $id('td_attInfo').textContent = ''; $id('td_attInfo').className = 'att-info';
 
       // card 1: DO No + pickup date
       $id('td_formTitle').textContent = pend ? 'Update DO No & Pickup Date' : 'DO No & Pickup Date';
-      $id('td_formHelp').textContent = pend ? 'After this the transfer moves to Awaiting Copy-Document.' : done ? 'Saved together with the copy-document details below.' : '';
+      $id('td_formHelp').textContent = pend ? 'After this the transfer becomes a Completed Transfer.' : '';
       $id('td_formHelp').style.display = $id('td_formHelp').textContent ? '' : 'none';
       $id('td_doNo').value = pend ? '' : (t.doNo || '');
       $id('td_pickup').value = pend ? '' : (t.pickupDate || '');
       $id('td_updatedBy').value = pend ? '' : (t.updatedBy || '');
       $id('td_saveBtn').textContent = pend ? 'Update' : 'Save Changes';
-      $id('td_saveBtn').style.display = done ? 'none' : '';
-      $id('td_undoBtn').style.display = wait ? '' : 'none';
-      // card 2: returned copy-document
-      $id('td_copyCard').style.display = pend ? 'none' : '';
-      $id('td_copyHelp').textContent = wait ? 'Enter the date the signed copy-document came back and who submitted it. This completes the transfer.' : '';
-      $id('td_copyHelp').style.display = wait ? '' : 'none';
+      $id('td_saveBtn').style.display = (pend || (done && isAdmin_())) ? '' : 'none';
+      // card 2 (completed only): copy-document returned date, added later as extra data
+      $id('td_copyCard').style.display = done ? '' : 'none';
+      $id('td_copyHelp').textContent = done ? (t.copyReturnedDate ? 'The signed copy-document has been returned. You can change the date or name here.' : 'When the signed copy-document comes back, enter its date and who submitted it. The Summary Report then shows "Completed. Copy-Document Returned".') : '';
+      $id('td_copyHelp').style.display = done ? '' : 'none';
       $id('td_copyDate').value = done ? (t.copyReturnedDate || '') : '';
       $id('td_copyBy').value = done ? (t.copySubmittedBy || '') : '';
-      $id('td_copySaveBtn').textContent = done ? 'Save Changes' : 'Complete Transfer';
-      $id('td_undoCopyBtn').style.display = (done && isMgmt_()) ? '' : 'none';
+      $id('td_copySaveBtn').textContent = t.copyReturnedDate ? 'Save Changes' : 'Save Copy-Document Date';
+      $id('td_copySaveBtn').style.display = (done && isAdmin_()) ? '' : 'none';
       $id('td_revertBtn').style.display = (done && isMgmt_()) ? '' : 'none';
+      $id('td_revBox').style.display = 'none';
       trStatus_('td_status', '', ''); trStatus_('td_cstatus', '', '');
       TD_BUTTONS.forEach(function (id) { $id(id).disabled = false; });
       showScreen('trDetailScreen');
-      setActiveNav(done ? 'navTrCompleted' : wait ? 'navTrAwait' : 'navTrPending');
+      setActiveNav(done ? 'navTrCompleted' : 'navTrPending');
       window.scrollTo(0, 0);
     }
     $id('td_back').addEventListener('click', function () {
       var st = trCurrent && trCurrent.status;
       if (trFromFind) { showScreen('trFindScreen'); runFind_(); return; }
       if (st === 'COMPLETED') { trNav_('trCompletedScreen'); loadTrCompleted(); }
-      else if (st === 'AWAITING_COPY') { trNav_('trAwaitScreen'); loadTrAwait(); }
       else { showScreen('trPendingScreen'); loadTrPending(); }
     });
     $id('td_printBtn').addEventListener('click', function () {
       var t = trCurrent; if (t) openLabelScreen_(t, function () { openTrDetail(t, trFromFind); });
     });
     function goPending_(msg, kind) { if (trFromFind) return goFind_(msg, kind); $id('tp_search').value = ''; showScreen('trPendingScreen'); setTpMode(false); showStatus('statusBanner', kind || 'ok', msg); loadTrPending(); }
-    function goAwait_(msg, kind) { if (trFromFind) return goFind_(msg, kind); $id('aw_search').value = ''; showScreen('trAwaitScreen'); setAwMode(false); showStatus('statusBanner', kind || 'ok', msg); loadTrAwait(); }
     function goCompleted_(msg) { showScreen('trCompletedScreen'); showStatus('statusBanner', 'ok', msg); loadTrCompleted(); }
 
-    // card 1 button: PENDING -> AWAITING_COPY, or fix the DO details of an AWAITING_COPY transfer
+    // card 1 button: PENDING -> COMPLETED, or fix the DO details of a COMPLETED transfer
     $id('td_saveBtn').addEventListener('click', function () {
       var t = trCurrent; if (!t) return;
       var pend = t.status === 'PENDING';
@@ -4210,81 +4131,55 @@
       setBusy_(btn, 'td_progress', true, 'Saving...');
       api_('PATCH', '/api/transfers/' + t.id, { action: pend ? 'complete' : 'correct', doNo: doNo, pickupDate: pickup, updatedBy: by }).then(function (res) {
         setBusy_(btn, 'td_progress', false, label);
-        if (pend) goPending_(res.item.invoiceNo + ' moved to Awaiting Copy-Document (DO ' + res.item.doNo + ').');
-        else { openTrDetail(res.item, trFromFind); showStatus('statusBanner', 'ok', 'Saved changes to ' + res.item.invoiceNo + '.'); loadTrAwait(); }
+        if (pend) goPending_(res.item.invoiceNo + ' is now a Completed Transfer (DO ' + res.item.doNo + '). Add the copy-document date later under Completed Transfers.');
+        else { openTrDetail(res.item, trFromFind); showStatus('statusBanner', 'ok', 'Saved changes to ' + res.item.invoiceNo + '.'); loadTrCompleted(); }
       }).catch(function (err) {
         setBusy_(btn, 'td_progress', false, label);
         trStatus_('td_status', 'error', err && err.message ? err.message : 'Could not save. Please try again.');
       });
     });
 
-    // card 2 button: AWAITING_COPY -> COMPLETED, or correct everything on a COMPLETED transfer
+    // card 2 button: copy-document returned date on a COMPLETED transfer (first entry or a change)
     $id('td_copySaveBtn').addEventListener('click', function () {
       var t = trCurrent; if (!t) return;
-      var done = t.status === 'COMPLETED';
       var cDate = $id('td_copyDate').value, cBy = $id('td_copyBy').value.trim();
       if (!cDate) { trStatus_('td_cstatus', 'error', 'Please select the Returned Copy-Document Date.'); return; }
       if (!cBy) { trStatus_('td_cstatus', 'error', 'Please enter who submitted the copy-document.'); $id('td_copyBy').focus(); return; }
-      var body = { action: done ? 'correct' : 'copy', copyReturnedDate: cDate, copySubmittedBy: cBy };
-      if (done) {
-        var doNo = $id('td_doNo').value.trim(), pickup = $id('td_pickup').value, by = $id('td_updatedBy').value.trim();
-        if (!doNo || !pickup || !by) { trStatus_('td_cstatus', 'error', 'DO No, Pickup Date and Updated By (above) cannot be empty.'); return; }
-        body.doNo = doNo; body.pickupDate = pickup; body.updatedBy = by;
-      }
       var btn = this, label = btn.textContent;
       trStatus_('td_cstatus', '', '');
       setBusy_(btn, 'td_cprogress', true, 'Saving...');
-      api_('PATCH', '/api/transfers/' + t.id, body).then(function (res) {
+      api_('PATCH', '/api/transfers/' + t.id, { action: 'copy', copyReturnedDate: cDate, copySubmittedBy: cBy }).then(function (res) {
         setBusy_(btn, 'td_cprogress', false, label);
-        if (done) { openTrDetail(res.item, trFromFind); showStatus('statusBanner', 'ok', 'Saved changes to ' + res.item.invoiceNo + '.'); loadTrCompleted(); }
-        else goAwait_('Completed ' + res.item.invoiceNo + ' (copy-document returned ' + fmtDateLong(res.item.copyReturnedDate) + ').');
+        openTrDetail(res.item, trFromFind); showStatus('statusBanner', 'ok', 'Saved the copy-document date for ' + res.item.invoiceNo + ' (returned ' + fmtDateLong(res.item.copyReturnedDate) + ').'); loadTrCompleted();
       }).catch(function (err) {
         setBusy_(btn, 'td_cprogress', false, label);
         trStatus_('td_cstatus', 'error', err && err.message ? err.message : 'Could not save. Please try again.');
       });
     });
 
-    // one step back
-    $id('td_undoBtn').addEventListener('click', function () {            // AWAITING_COPY -> PENDING
-      var t = trCurrent; if (!t) return;
-      if (!confirm('Send ' + t.invoiceNo + ' back to Pending? Its DO No and pickup date will be cleared (attachments are kept).')) return;
-      var btn = this; btn.disabled = true;
-      api_('PATCH', '/api/transfers/' + t.id, { action: 'undo', from: 'AWAITING_COPY' }).then(function (res) {
-        btn.disabled = false; goPending_(res.item.invoiceNo + ' is back in Pending Inter-Outlet Transfers.'); loadTrAwait();
-      }).catch(function (err) { btn.disabled = false; trStatus_('td_status', 'error', err && err.message ? err.message : 'Could not undo.'); });
+    $id('td_revertBtn').addEventListener('click', function () {          // COMPLETED -> PENDING (Management, reason required)
+      if (!trCurrent) return;
+      $id('td_revReason').value = ''; trStatus_('td_revStatus', '', ''); $id('td_revBox').style.display = ''; $id('td_revReason').focus();
     });
-    $id('td_undoCopyBtn').addEventListener('click', function () {        // COMPLETED -> AWAITING_COPY
+    $id('td_revCancel').addEventListener('click', function () { $id('td_revBox').style.display = 'none'; });
+    $id('td_revConfirm').addEventListener('click', function () {
       var t = trCurrent; if (!t) return;
-      if (!confirm('Send ' + t.invoiceNo + ' back to Awaiting Copy-Document? Its copy-document details will be cleared.')) return;
-      var btn = this; btn.disabled = true;
-      api_('PATCH', '/api/transfers/' + t.id, { action: 'undo', from: 'COMPLETED' }).then(function (res) {
-        btn.disabled = false; goAwait_(res.item.invoiceNo + ' is back in Awaiting Copy-Document.'); loadTrCompleted();
-      }).catch(function (err) { btn.disabled = false; trStatus_('td_cstatus', 'error', err && err.message ? err.message : 'Could not undo.'); });
-    });
-
-    $id('td_revertBtn').addEventListener('click', function () {          // COMPLETED -> PENDING (Management)
-      var t = trCurrent; if (!t) return;
+      var reason = $id('td_revReason').value.trim();
+      if (reason.length < 3) { trStatus_('td_revStatus', 'error', 'Please enter the reason for reverting this transfer.'); return; }
       if (!confirm('Revert ' + t.invoiceNo + ' to Pending? Its DO No, pickup and copy-document details will be cleared (attachments are kept).')) return;
       var btn = this; btn.disabled = true;
-      api_('PATCH', '/api/transfers/' + t.id, { action: 'revert' }).then(function (res) {
-        btn.disabled = false; goPending_(res.item.invoiceNo + ' is back in Pending Inter-Outlet Transfers.'); loadTrCompleted();
-      }).catch(function (err) { btn.disabled = false; trStatus_('td_cstatus', 'error', err && err.message ? err.message : 'Could not revert.'); });
+      api_('PATCH', '/api/transfers/' + t.id, { action: 'revert', reason: reason }).then(function (res) {
+        btn.disabled = false; $id('td_revBox').style.display = 'none'; goPending_(res.item.invoiceNo + ' is back in Pending Inter-Outlet Transfers.'); loadTrCompleted();
+      }).catch(function (err) { btn.disabled = false; trStatus_('td_revStatus', 'error', err && err.message ? err.message : 'Could not revert.'); });
     });
 
     $id('td_deleteBtn').addEventListener('click', function () {
-      if (!trCurrent) return;
-      $id('td_delReason').value = ''; trStatus_('td_delStatus', '', ''); $id('td_delBox').style.display = ''; $id('td_delReason').focus();
-    });
-    $id('td_delCancel').addEventListener('click', function () { $id('td_delBox').style.display = 'none'; });
-    $id('td_delConfirm').addEventListener('click', function () {
       var t = trCurrent; if (!t) return;
-      var reason = $id('td_delReason').value.trim();
-      if (reason.length < 3) { trStatus_('td_delStatus', 'error', 'Please enter the reason for deleting this transfer.'); return; }
       if (!confirm('Delete ' + t.invoiceNo + '? Its attachments will be deleted too. This cannot be undone.')) return;
       var btn = this; btn.disabled = true;
-      api_('DELETE', '/api/transfers/' + t.id, { reason: reason }).then(function () {
-        btn.disabled = false; $id('td_delBox').style.display = 'none'; goPending_('Deleted ' + t.invoiceNo + '.');
-      }).catch(function (err) { btn.disabled = false; if (err && err.code === 'ADMIN_REQUIRED') adminOff_(); trStatus_('td_delStatus', 'error', err && err.message ? err.message : 'Could not delete.'); });
+      api_('DELETE', '/api/transfers/' + t.id).then(function () {
+        btn.disabled = false; goPending_('Deleted ' + t.invoiceNo + '.');
+      }).catch(function (err) { btn.disabled = false; if (err && err.code === 'ADMIN_REQUIRED') adminOff_(); trStatus_('td_status', 'error', err && err.message ? err.message : 'Could not delete.'); });
     });
 
     // ---- attachments: add more / remove (any status; saved straight away) ----
@@ -4374,13 +4269,13 @@
         btn.disabled = false; btn.textContent = 'Save Changes';
         closeTrEdit(); openTrDetail(res.item, trFromFind);
         showStatus('statusBanner', 'ok', 'Saved changes to ' + res.item.invoiceNo + '.');
-        if (res.item.status === 'AWAITING_COPY') loadTrAwait(); else loadTrPending();
+        loadTrPending();
       }).catch(function (err) {
         btn.disabled = false; btn.textContent = 'Save Changes';
         if (err && err.code === 'CHANGED') {
           var id = t.id; closeTrEdit();
-          (t.status === 'AWAITING_COPY' ? loadTrAwait() : loadTrPending()).then(function () {
-            var fresh = (t.status === 'AWAITING_COPY' ? trAwaiting : trPending).filter(function (x) { return x.id === id; })[0];
+          loadTrPending().then(function () {
+            var fresh = trPending.filter(function (x) { return x.id === id; })[0];
             if (fresh) openTrDetail(fresh, trFromFind);
             showStatus('statusBanner', 'error', err.message);
           });
@@ -4391,78 +4286,6 @@
       });
     });
 
-    // ---------- Awaiting Copy-Document: single ----------
-    function renderTrAwait() {
-      var q = $id('aw_search').value.trim();
-      var rows = q ? trAwaiting.filter(function (t) { return trMatch_(t, q); }) : trAwaiting;
-      $id('aw_count').textContent = rows.length;
-      $id('aw_empty').style.display = rows.length ? 'none' : 'block';
-      $id('aw_list').innerHTML = rows.map(function (t) { return trItemHtml_(t, { kind: 'await' }); }).join('');
-    }
-    $id('aw_search').addEventListener('input', renderTrAwait);
-    $id('aw_list').addEventListener('click', function (e) {
-      var el = e.target.closest && e.target.closest('.pending-item'); if (!el) return;
-      var t = trAwaiting.filter(function (x) { return x.id === el.getAttribute('data-id'); })[0];
-      if (t) openTrDetail(t);
-    });
-    $id('aw_back').addEventListener('click', function () { showScreen('homeScreen'); });
-    function setAwMode(bulk) {
-      $id('awSingle').style.display = bulk ? 'none' : 'block';
-      $id('awBulk').style.display = bulk ? 'block' : 'none';
-      $id('awModeSingle').classList.toggle('active', !bulk);
-      $id('awModeBulk').classList.toggle('active', bulk);
-      if (bulk) abRender();
-    }
-    $id('awModeSingle').addEventListener('click', function () { setAwMode(false); });
-    $id('awModeBulk').addEventListener('click', function () { setAwMode(true); });
-
-    // ---------- Awaiting Copy-Document: bulk ----------
-    function abShown_() {
-      var q = $id('ab_search').value.trim();
-      return q ? trAwaiting.filter(function (t) { return trMatch_(t, q); }) : trAwaiting.slice();
-    }
-    function abRender() {
-      var rows = abShown_();
-      $id('ab_shown').textContent = rows.length;
-      $id('ab_empty').style.display = rows.length ? 'none' : 'block';
-      $id('ab_list').innerHTML = rows.map(function (t) {
-        return '<label class="bk-row' + (abSel[t.id] ? ' checked' : '') + '" data-id="' + escapeHtml(t.id) + '">' +
-          '<input type="checkbox" data-id="' + escapeHtml(t.id) + '"' + (abSel[t.id] ? ' checked' : '') + '>' +
-          '<div class="bk-row-main"><div class="bk-rpo">' + escapeHtml(t.invoiceNo) + '</div><div class="bk-meta">' + trLine_(t) + ' &middot; DO ' + escapeHtml(t.doNo || '') + '</div></div></label>';
-      }).join('');
-      var sel = trAwaiting.filter(function (t) { return abSel[t.id]; });
-      $id('ab_selN').textContent = sel.length;
-      $id('ab_selCard').style.display = sel.length ? 'block' : 'none';
-      $id('ab_chips').innerHTML = sel.map(function (t) {
-        return '<button type="button" class="bk-chip" data-id="' + escapeHtml(t.id) + '" title="Remove">' + escapeHtml(t.invoiceNo) + '<b>&times;</b></button>';
-      }).join('');
-      $id('ab_bar').style.display = sel.length ? 'flex' : 'none';
-      $id('ab_barCount').textContent = sel.length + ' selected';
-      $id('ab_continueBtn').disabled = !sel.length;
-      $id('ab_continueBtn').textContent = sel.length ? 'Continue (' + sel.length + ')' : 'Continue';
-    }
-    $id('ab_search').addEventListener('input', abRender);
-    $id('ab_clearSearch').addEventListener('click', function () { $id('ab_search').value = ''; abRender(); $id('ab_search').focus(); });
-    $id('ab_list').addEventListener('change', function (e) {
-      if (!e.target || e.target.type !== 'checkbox') return;
-      var id = e.target.getAttribute('data-id');
-      if (e.target.checked) abSel[id] = true; else delete abSel[id];
-      abRender();
-    });
-    $id('ab_chips').addEventListener('click', function (e) {
-      var b = e.target.closest && e.target.closest('.bk-chip'); if (!b) return;
-      delete abSel[b.getAttribute('data-id')]; abRender();
-    });
-    $id('ab_tickAll').addEventListener('click', function () { abShown_().forEach(function (t) { abSel[t.id] = true; }); abRender(); });
-    $id('ab_untickAll').addEventListener('click', function () { abShown_().forEach(function (t) { delete abSel[t.id]; }); abRender(); });
-    $id('ab_clearSel').addEventListener('click', function () { abSel = {}; abRender(); });
-    $id('ab_continueBtn').addEventListener('click', function () {
-      abReview = trAwaiting.filter(function (t) { return abSel[t.id]; });
-      if (!abReview.length) return;
-      if (abReview.length > 200) { alert('Please select 200 transfers or fewer at a time.'); return; }
-      fdBulk = ''; trStatus_('abr_status', '', ''); abrAttach.reset();
-      renderAbReview(); trNav_('trAwaitBulkReviewScreen');
-    });
     function renderAbReview() {
       $id('abr_count').textContent = abReview.length;
       $id('abr_list').innerHTML = abReview.map(function (t) {
@@ -4470,7 +4293,7 @@
           '<div class="bk-meta">' + trLine_(t) + ' &middot; DO ' + escapeHtml(t.doNo || '') + '</div></div>' +
           '<button type="button" class="tr-item-x" data-id="' + escapeHtml(t.id) + '">Remove</button></div>';
       }).join('');
-      $id('abr_submitBtn').textContent = 'Complete ' + abReview.length + (abReview.length === 1 ? ' Transfer' : ' Transfers');
+      $id('abr_submitBtn').textContent = 'Save ' + abReview.length + (abReview.length === 1 ? ' Transfer' : ' Transfers');
     }
     $id('abr_list').addEventListener('click', function (e) {
       var b = e.target.closest && e.target.closest('.tr-item-x'); if (!b) return;
@@ -4479,7 +4302,7 @@
       if (!abReview.length) { backToAbSelection_(); return; }
       renderAbReview();
     });
-    function backToAbSelection_() { if (fdBulk) { fdBulk = ''; showScreen('trFindScreen'); fdRender_(); return; } showScreen('trAwaitScreen'); setAwMode(true); }
+    function backToAbSelection_() { fdBulk = ''; showScreen('trFindScreen'); fdRender_(); }
     $id('abr_back').addEventListener('click', backToAbSelection_);
     $id('abr_backBtn').addEventListener('click', backToAbSelection_);
     $id('abr_submitBtn').addEventListener('click', function () {
@@ -4488,23 +4311,20 @@
       if (!by) { trStatus_('abr_status', 'error', 'Please enter who submitted the copy-documents.'); $id('abr_by').focus(); return; }
       var btn = this, label = btn.textContent;
       trStatus_('abr_status', '', '');
-      setBusy_(btn, 'abr_progress', true, abrAttach.hasFile() ? 'Uploading...' : 'Completing...');
+      setBusy_(btn, 'abr_progress', true, abrAttach.hasFile() ? 'Uploading...' : 'Saving...');
       abrAttach.resolve().then(function (att) {
-        btn.textContent = 'Completing...';
+        btn.textContent = 'Saving...';
         return api_('PATCH', '/api/transfers', { action: 'copy', ids: abReview.map(function (t) { return t.id; }), copyReturnedDate: date, copySubmittedBy: by, attachments: att });
       }).then(function (res) {
         setBusy_(btn, 'abr_progress', false, label);
         var skipped = abReview.filter(function (t) { return res.skipped.indexOf(t.id) !== -1; }).map(function (t) { return t.invoiceNo; });
-        var msg = 'Completed ' + res.updated.length + ' transfer' + (res.updated.length === 1 ? '' : 's') + ' (copy-document returned ' + fmtDateLong(date) + ').';
-        if (skipped.length) msg += ' Skipped ' + skipped.length + ' (already changed by someone else, or too many attachments): ' + skipped.join(', ') + '.';
-        var fromFindA = !!fdBulk; abReview.forEach(function (t) { if (res.skipped.indexOf(t.id) === -1) delete fdSel[t.id]; });
+        var msg = 'Copy-document date saved for ' + res.updated.length + ' transfer' + (res.updated.length === 1 ? '' : 's') + ' (returned ' + fmtDateLong(date) + ').';
+        if (skipped.length) msg += ' Skipped ' + skipped.length + ' (already updated by someone else, or too many attachments): ' + skipped.join(', ') + '.';
+        abReview.forEach(function (t) { if (res.skipped.indexOf(t.id) === -1) delete fdSel[t.id]; });
         abSel = {}; abReview = [];
         ['abr_date', 'abr_by'].forEach(function (id) { $id(id).value = ''; });
-        $id('ab_search').value = ''; abrAttach.reset();
-        loadTrAwait();
-        if (fromFindA) { fdBulk = ''; goFind_(msg, skipped.length ? 'error' : 'ok'); return; }
-        showScreen('trAwaitScreen'); setAwMode(true);
-        showStatus('statusBanner', skipped.length ? 'error' : 'ok', msg);
+        abrAttach.reset();
+        fdBulk = ''; goFind_(msg, skipped.length ? 'error' : 'ok');
       }).catch(function (err) {
         setBusy_(btn, 'abr_progress', false, label);
         trStatus_('abr_status', 'error', err && err.message ? err.message : 'Could not update. Please try again.');
@@ -4513,11 +4333,13 @@
 
     // ---------- Completed ----------
     function renderTrCompleted(q) {
-      $id('tc_count').textContent = trCompleted.length;
-      $id('tc_empty').style.display = trCompleted.length ? 'none' : 'block';
+      var f = $id('tc_filter').value, rows = trCompleted.filter(function (t) { return f === 'NOCOPY' ? !t.copyReturnedDate : f === 'COPY' ? !!t.copyReturnedDate : true; });
+      $id('tc_count').textContent = rows.length;
+      $id('tc_empty').style.display = rows.length ? 'none' : 'block';
       $id('tc_note').style.display = (!q && trCompleted.length >= 200) ? 'block' : 'none';
-      $id('tc_list').innerHTML = trCompleted.map(function (t) { return trItemHtml_(t, { kind: 'done' }); }).join('');
+      $id('tc_list').innerHTML = rows.map(function (t) { return trItemHtml_(t, { kind: 'done' }); }).join('');
     }
+    $id('tc_filter').addEventListener('change', function () { renderTrCompleted($id('tc_search').value.trim()); });
     var tcTimer;
     $id('tc_search').addEventListener('input', function () { clearTimeout(tcTimer); tcTimer = setTimeout(loadTrCompleted, 300); });
     $id('tc_list').addEventListener('click', function (e) {
@@ -4528,7 +4350,7 @@
     $id('tc_back').addEventListener('click', function () { showScreen('homeScreen'); });
 
     // ---------- Summary report ----------
-    var STATUS_LABEL_ = { PENDING: 'Pending', AWAITING_COPY: 'Awaiting Copy-Document', COMPLETED: 'Completed' };
+    function statusText_(t) { return t.status === 'COMPLETED' ? (t.copyReturnedDate ? 'Completed. Copy-Document Returned' : 'Completed') : 'Pending'; }
     var tsMode = 'month';
     function setTsMode(m) {
       tsMode = m;
@@ -4556,35 +4378,37 @@
       var p = tsPeriod_(); if (p.error) { alert(p.error); return; }
       if (cat_() !== 'OUTLET' && !$id('ts_outlet').value) { alert('Please select an outlet, or All outlets, before running the report.'); return; }
       var scope = cat_() === 'OUTLET' ? '' : $id('ts_outlet').value;
-      var status = $id('ts_status').value, btn = this;
+      var status = $id('ts_status').value, btn = this, apiStatus = status.split('_')[0];
       setBusy_(btn, null, true, 'Loading...');
-      api_('GET', '/api/transfers?status=' + status + '&from=' + p.from + '&to=' + p.to + (scope ? '&' + rptScopeQs_('ts_outlet') : '')).then(function (rows) {
+      api_('GET', '/api/transfers?status=' + apiStatus + '&from=' + p.from + '&to=' + p.to + (scope ? '&' + rptScopeQs_('ts_outlet') : '')).then(function (rows) {
         setBusy_(btn, null, false, 'Run');
+        if (status === 'COMPLETED_NOCOPY') rows = rows.filter(function (t) { return !t.copyReturnedDate; });
+        if (status === 'COMPLETED_COPY') rows = rows.filter(function (t) { return !!t.copyReturnedDate; });
         tsScope = scope; tsRows = groupByOutlet_(scope) ? sortByOutlet_(rows) : rows; tsMeta = { label: p.label, status: status };
         renderTsResult();
       }).catch(function (err) { setBusy_(btn, null, false, 'Run'); alert(err && err.message ? err.message : 'Could not load the report.'); });
     });
     function tsTableHtml_(cls) {
       var oc = showOutletCol_(), gb = groupByOutlet_(tsScope), n = 13 + 1 + (oc ? 1 : 0);
-      var w = [2.5].concat(oc ? [7] : [], [9, 13, 9, 6, 3, 14, 8, 6, 6, 6, 6, 6]);
+      var w = [2.5].concat(oc ? [7] : [], [9, 12, 8, 6, 3, 12, 11, 6, 6, 6, 6, 6]);
       var tot = w.reduce(function (x, y) { return x + y; }, 0);
       var cg = cls === 'print' ? '<colgroup>' + w.map(function (x) { return '<col style="width:' + (x * 100 / tot).toFixed(2) + '%">'; }).join('') + '</colgroup>' : '';
       var html = '<table class="ts-table">' + cg + '<thead><tr><th>#</th>' + (oc ? '<th>Outlet</th>' : '') + '<th>Invoice / ODO No</th><th>Transfer To</th><th>Dept</th><th>Date</th><th class="num">Ctn</th><th>Remark</th><th>Status</th><th>DO No</th><th>Pickup</th><th>Updated By</th><th>Copy Returned</th><th>Submitted By</th></tr></thead><tbody>';
       outletGroups_(tsRows, tsScope).forEach(function (g) {
         if (gb) html += '<tr class="ts-group"><td colspan="' + n + '">' + escapeHtml(g.outlet) + '  -  ' + g.rows.length + ' transfer' + (g.rows.length === 1 ? '' : 's') + '</td></tr>';
         g.rows.forEach(function (t, i) {
-          var done = t.status === 'COMPLETED', wait = t.status === 'AWAITING_COPY';
+          var done = t.status === 'COMPLETED';
           html += '<tr><td>' + (i + 1) + '</td>' + (oc ? '<td>' + escapeHtml(t.outlet || '') + '</td>' : '') + '<td>' + escapeHtml(t.invoiceNo) + '</td><td>' + escapeHtml(t.transferTo) + '</td><td>' + escapeHtml(t.department) + '</td><td>' + escapeHtml(tplDate_(t.transferDate)) + '</td><td class="num">' + escapeHtml(t.totalCarton) + '</td><td class="rm">' + escapeHtml(t.remark || '') + '</td>' +
-            '<td class="' + (done ? 'ts-st-c' : wait ? 'ts-st-w' : 'ts-st-p') + '">' + (done ? 'Completed' : wait ? 'Awaiting Copy-Document' : 'Pending') + '</td><td>' + escapeHtml(t.doNo || '') + '</td><td>' + escapeHtml(tplDate_(t.pickupDate)) + '</td><td>' + escapeHtml(t.updatedBy || '') + '</td>' +
+            '<td class="' + (done ? (t.copyReturnedDate ? 'ts-st-w' : 'ts-st-c') : 'ts-st-p') + '">' + escapeHtml(statusText_(t)) + '</td><td>' + escapeHtml(t.doNo || '') + '</td><td>' + escapeHtml(tplDate_(t.pickupDate)) + '</td><td>' + escapeHtml(t.updatedBy || '') + '</td>' +
             '<td>' + escapeHtml(tplDate_(t.copyReturnedDate)) + '</td><td>' + escapeHtml(t.copySubmittedBy || '') + '</td></tr>';
         });
       });
       return html + '</tbody></table>';
     }
     function tsTotalsText_() {
-      var p = tsRows.filter(function (t) { return t.status === 'PENDING'; }), c = tsRows.filter(function (t) { return t.status === 'COMPLETED'; }), w = tsRows.filter(function (t) { return t.status === 'AWAITING_COPY'; });
+      var p = tsRows.filter(function (t) { return t.status === 'PENDING'; }), c = tsRows.filter(function (t) { return t.status === 'COMPLETED'; }), r = c.filter(function (t) { return !!t.copyReturnedDate; });
       var sum = function (a) { return a.reduce(function (s, t) { return s + Number(t.totalCarton || 0); }, 0); };
-      return tsRows.length + ' transfer' + (tsRows.length === 1 ? '' : 's') + ' / ' + sum(tsRows) + ' cartons  ·  Pending: ' + p.length + ' (' + sum(p) + ' ctn)  ·  Awaiting Copy-Document: ' + w.length + ' (' + sum(w) + ' ctn)  ·  Completed: ' + c.length + ' (' + sum(c) + ' ctn)';
+      return tsRows.length + ' transfer' + (tsRows.length === 1 ? '' : 's') + ' / ' + sum(tsRows) + ' cartons  ·  Pending: ' + p.length + ' (' + sum(p) + ' ctn)  ·  Completed: ' + c.length + ' (' + sum(c) + ' ctn)  ·  Copy-Document Returned: ' + r.length + ' (' + sum(r) + ' ctn)';
     }
     function renderTsResult() {
       $id('ts_resultCard').style.display = 'block';
@@ -4594,7 +4418,7 @@
     }
     $id('ts_printBtn').addEventListener('click', function () {
       if (!tsRows.length) return;
-      var st = { ALL: 'All statuses', PENDING: 'Pending only', AWAITING_COPY: 'Awaiting Copy-Document only', COMPLETED: 'Completed only' }[tsMeta.status] || '';
+      var st = { ALL: 'All statuses', PENDING: 'Pending only', COMPLETED: 'Completed (all)', COMPLETED_NOCOPY: 'Completed - copy-document not returned', COMPLETED_COPY: 'Completed. Copy-Document Returned' }[tsMeta.status] || '';
       printRoot_('<h1>Goods Transfer Summary - ' + escapeHtml(tsMeta.label) + '</h1><p>' + escapeHtml(st) + ' &middot; ' + (showOutletCol_() ? escapeHtml(outletScopeText_(tsScope)) + ' &middot; ' : '') + escapeHtml(tsTotalsText_()) + '</p>' + tsTableHtml_('print'), '@page{ size:A4 landscape; margin:10mm; }');
     });
     $id('ts_csvBtn').addEventListener('click', function () {
@@ -4602,7 +4426,7 @@
       var oc = showOutletCol_(), head = (oc ? ['Outlet'] : []).concat(['Invoice / ODO No', 'Transfer To', 'Department', 'Date', 'Total Carton', 'Remark', 'Status', 'DO No', 'Pickup Date', 'Updated By', 'Copy Returned Date', 'Submitted By', 'Attachments']);
       var q = function (v) { v = v === null || v === undefined ? '' : String(v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
       var lines = [head.join(',')].concat(tsRows.map(function (t) {
-        return (oc ? [t.outlet || ''] : []).concat([t.invoiceNo, t.transferTo, t.department, tplDate_(t.transferDate), t.totalCarton, t.remark, STATUS_LABEL_[t.status] || t.status, t.doNo, tplDate_(t.pickupDate), t.updatedBy, tplDate_(t.copyReturnedDate), t.copySubmittedBy, (t.attachments || []).map(function (a) { return a.url; }).join(' ')]).map(q).join(',');
+        return (oc ? [t.outlet || ''] : []).concat([t.invoiceNo, t.transferTo, t.department, tplDate_(t.transferDate), t.totalCarton, t.remark, statusText_(t), t.doNo, tplDate_(t.pickupDate), t.updatedBy, tplDate_(t.copyReturnedDate), t.copySubmittedBy, (t.attachments || []).map(function (a) { return a.url; }).join(' ')]).map(q).join(',');
       }));
       var blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
       var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'goods-transfers-' + tsMeta.label.replace(/[^\w]+/g, '-') + '.csv';
@@ -4610,14 +4434,15 @@
     });
 
     // ---------- Find Transfer (one search for every status; ticks persist across searches) ----------
+    function fdOpen_(t) { return t.status === 'PENDING' || (t.status === 'COMPLETED' && !t.copyReturnedDate); }   // can be ticked for a bulk update
     function fdBadge_(t) {
-      var done = t.status === 'COMPLETED', wait = t.status === 'AWAITING_COPY';
-      return '<span class="pending-badge' + (done ? ' done-badge' : wait ? ' wait-badge' : '') + '">' + (done ? 'COMPLETED' : wait ? 'AWAITING COPY' : 'PENDING') + '</span>';
+      var done = t.status === 'COMPLETED';
+      return '<span class="pending-badge' + (done ? ' done-badge' : '') + '">' + (done ? (t.copyReturnedDate ? 'COMPLETED · COPY RETURNED' : 'COMPLETED') : 'PENDING') + '</span>';
     }
     function fdSelected_() { return Object.keys(fdSel).map(function (k) { return fdSel[k]; }); }
     function fdGroups_() {
       var all = fdSelected_();
-      return { pend: all.filter(function (t) { return t.status === 'PENDING'; }), wait: all.filter(function (t) { return t.status === 'AWAITING_COPY'; }) };
+      return { pend: all.filter(function (t) { return t.status === 'PENDING'; }), wait: all.filter(function (t) { return t.status === 'COMPLETED'; }) };
     }
     function fdRender_() {
       var q = fdQuery, items = fdItems;
@@ -4629,10 +4454,10 @@
       }).join('');
       $id('fd_note').style.display = items.length >= 60 ? 'block' : 'none';
       $id('fd_count').textContent = items.length;
-      var ticks = items.filter(function (t) { return t.status !== 'COMPLETED'; });
+      var ticks = items.filter(fdOpen_);
       $id('fd_allrow').style.display = ticks.length ? 'flex' : 'none';
       $id('fd_list').innerHTML = items.map(function (t) {
-        var open = t.status !== 'COMPLETED', on = !!fdSel[t.id];
+        var open = fdOpen_(t), on = !!fdSel[t.id];
         var meta = trLine_(t) + (t.doNo ? ' &middot; DO ' + escapeHtml(t.doNo) : '') + (attCount_(t) ? ' &middot; &#128206;' + attCount_(t) : '');
         return '<div class="bk-row fd-row' + (on ? ' checked' : '') + '" data-id="' + escapeHtml(t.id) + '">' +
           (open ? '<input type="checkbox" data-id="' + escapeHtml(t.id) + '"' + (on ? ' checked' : '') + ' aria-label="Select ' + escapeHtml(t.invoiceNo) + '">' : '<span class="fd-nobox"></span>') +
@@ -4641,7 +4466,7 @@
       var g = fdGroups_(), n = g.pend.length + g.wait.length;
       $id('fd_selN').textContent = n;
       $id('fd_selCard').style.display = n ? 'block' : 'none';
-      var parts = []; if (g.pend.length) parts.push(g.pend.length + ' Pending'); if (g.wait.length) parts.push(g.wait.length + ' Awaiting Copy-Document');
+      var parts = []; if (g.pend.length) parts.push(g.pend.length + ' Pending'); if (g.wait.length) parts.push(g.wait.length + ' Completed (copy-document date to add)');
       $id('fd_selSummary').textContent = parts.join(' · ');
       $id('fd_chips').innerHTML = g.pend.concat(g.wait).map(function (t) {
         return '<button type="button" class="bk-chip" data-id="' + escapeHtml(t.id) + '" title="Remove">' + escapeHtml(t.invoiceNo) + '<b>&times;</b></button>';
@@ -4651,7 +4476,7 @@
       $id('fd_btnPend').style.display = g.pend.length ? '' : 'none';
       $id('fd_btnPend').textContent = 'Update DO No & Pickup (' + g.pend.length + ')';
       $id('fd_btnAwait').style.display = g.wait.length ? '' : 'none';
-      $id('fd_btnAwait').textContent = 'Copy-Document Returned (' + g.wait.length + ')';
+      $id('fd_btnAwait').textContent = 'Copy-Document Date (' + g.wait.length + ')';
     }
     function runFind_() {
       var q = $id('fd_search').value.trim(); fdQuery = q;
@@ -4661,7 +4486,7 @@
         if (seq !== fdSeq) return;
         var list = both[0]; fdRets = both[1].map(prepRow_);
         fdItems = list;
-        list.forEach(function (t) { if (fdSel[t.id]) { if (t.status === 'COMPLETED') delete fdSel[t.id]; else fdSel[t.id] = t; } });
+        list.forEach(function (t) { if (fdSel[t.id]) { if (!fdOpen_(t)) delete fdSel[t.id]; else fdSel[t.id] = t; } });
         fdRender_();
       }).catch(function (err) {
         if (seq !== fdSeq) return;
@@ -4701,7 +4526,7 @@
       var b = e.target.closest && e.target.closest('.bk-chip'); if (!b) return;
       delete fdSel[b.getAttribute('data-id')]; fdRender_();
     });
-    $id('fd_tickAll').addEventListener('click', function () { fdItems.forEach(function (t) { if (t.status !== 'COMPLETED') fdSel[t.id] = t; }); fdRender_(); });
+    $id('fd_tickAll').addEventListener('click', function () { fdItems.forEach(function (t) { if (fdOpen_(t)) fdSel[t.id] = t; }); fdRender_(); });
     $id('fd_untickAll').addEventListener('click', function () { fdItems.forEach(function (t) { delete fdSel[t.id]; }); fdRender_(); });
     $id('fd_clearSel').addEventListener('click', function () { fdSel = {}; fdRender_(); });
     $id('fd_btnPend').addEventListener('click', function () {
@@ -4780,7 +4605,6 @@
     // ---------- sidebar navigation ----------
     $id('navTrNew').addEventListener('click', function () { trNav_('trNewScreen'); });
     $id('navTrPending').addEventListener('click', function () { trNav_('trPendingScreen'); loadTrPending(); });
-    $id('navTrAwait').addEventListener('click', function () { trNav_('trAwaitScreen'); loadTrAwait(); });
     $id('navTrCompleted').addEventListener('click', function () { trNav_('trCompletedScreen'); loadTrCompleted(); });
     $id('navTrSummary').addEventListener('click', function () { trNav_('trSummaryScreen'); });
 
@@ -4798,16 +4622,6 @@
         }));
       }
       if (isVisible_('trFindScreen') && fdQuery) jobs.push(runFind_());
-      if (isVisible_('trAwaitScreen') || isVisible_('trAwaitBulkReviewScreen')) {
-        jobs.push(api_('GET', '/api/transfers?status=AWAITING_COPY').then(function (list) {
-          var sig = JSON.stringify(list);
-          if (sig === trSigs.awaiting && !force) return;
-          trSigs.awaiting = sig; trAwaiting = list;
-          var ids = {}; list.forEach(function (x) { ids[x.id] = true; });
-          Object.keys(abSel).forEach(function (id) { if (!ids[id]) delete abSel[id]; });
-          renderTrAwait(); abRender();
-        }));
-      }
       if (isVisible_('trCompletedScreen')) {
         var q = $id('tc_search').value.trim();
         jobs.push(api_('GET', '/api/transfers?status=COMPLETED' + (q ? '&q=' + encodeURIComponent(q) : '')).then(function (list) {
@@ -4820,7 +4634,7 @@
         jobs.push(api_('GET', '/api/transfers?status=ALL&q=' + encodeURIComponent(trCurrent.invoiceNo)).then(function (list) {
           var now = list.filter(function (x) { return x.id === trCurrent.id; })[0];
           if (!now || now.status !== trCurrent.status) {
-            trStatus_('td_status', 'error', now ? 'Someone else changed this transfer (it is now ' + (STATUS_LABEL_[now.status] || now.status) + '). Go back to see the latest list.' : 'This transfer was removed by someone else. Go back to see the latest list.');
+            trStatus_('td_status', 'error', now ? 'Someone else changed this transfer (it is now ' + statusText_(now) + '). Go back to see the latest list.' : 'This transfer was removed by someone else. Go back to see the latest list.');
             TD_BUTTONS.forEach(function (id) { $id(id).disabled = true; });
           }
         }));

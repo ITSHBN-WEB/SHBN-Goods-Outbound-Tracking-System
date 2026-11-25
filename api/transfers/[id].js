@@ -1,23 +1,17 @@
-// PUT    /api/transfers/:id  edit a PENDING transfer (an AWAITING_COPY one too, admin only)   body { transferTo, outletCode, invoiceNo, department, transferDate, totalCarton, remark, original }
-// PATCH  /api/transfers/:id  body { action, ... }
-//   complete = step 1: PENDING -> AWAITING_COPY       { doNo, pickupDate, updatedBy, attachments? }
-//   copy     = step 2: AWAITING_COPY -> COMPLETED     { copyReturnedDate, copySubmittedBy, attachments? }
-//   correct  = fix details: an AWAITING_COPY transfer   { doNo, pickupDate, updatedBy }
-//              or a COMPLETED one (also send copyReturnedDate + copySubmittedBy)
-//   undo     = one step back, `from` names the step the user is looking at:
-//              { from: 'COMPLETED' }  -> AWAITING_COPY (copy-document details cleared)
-//              { from: 'AWAITING_COPY' } -> PENDING (DO No / pickup date cleared)
-//   attach   = add attachments in any status          { attachments: [{url,name,type}] }
-//   detach   = remove one attachment in any status    { url }   (Outlet and Management; not Head Office)
-// DELETE /api/transfers/:id  while PENDING only (Outlet / Management), with a required { reason }; its attachment files are deleted too
-// Every change checks the row's current state inside the SQL itself, so two people acting at once cannot both win.
+// PUT    /api/transfers/:id  edit a PENDING transfer (Outlet / Management)
+// PATCH  /api/transfers/:id  body.action:
+//   complete = PENDING -> COMPLETED                  { doNo, pickupDate, updatedBy, attachments? }
+//   copy     = add / change the copy-document date   { copyReturnedDate, copySubmittedBy, attachments? }   (a COMPLETED transfer)
+//   correct  = fix DO No / pickup (and the copy-document details when sent)   (a COMPLETED transfer)
+//   revert   = COMPLETED -> PENDING, Management only, { reason } required (DO / pickup / copy details cleared)
+//   attach / detach = add / remove attachments in any status
+// DELETE /api/transfers/:id  while PENDING only (Outlet / Management); its attachment files are deleted too
 const { route, HttpError, query, parseId, requireAdmin, scopeOf, assertOwn, audit } = require('../../lib/core');
 const { TRANSFER_COLUMNS, TRANSFER_ORIGINAL_FIELDS, MAX_ATTACHMENTS, parseTransfer, parseCompletion, parseCopy, parseAttachments, parseOriginal, originalSql } = require('../../lib/core');
 const { assertInvoiceFree, resolveOutlet, transferCounts } = require('../../lib/core');
 
 const WRONG_STATE = {
   PENDING: ['NOT_PENDING', 'This transfer is no longer pending (someone else may have already updated it). Please refresh the list.'],
-  AWAITING_COPY: ['NOT_AWAITING', 'This transfer is no longer awaiting its copy-document (someone else may have already changed it). Please refresh the list.'],
   COMPLETED: ['NOT_COMPLETED', 'This transfer is no longer completed (someone else may have changed it). Please refresh the list.'],
 };
 // Called when a guarded UPDATE matched no row: work out why and build the right error.
@@ -40,8 +34,7 @@ module.exports = route(['PUT', 'PATCH', 'DELETE'], async function (req) {
     const t = parseTransfer(req.body);
     const original = parseOriginal(req.body, TRANSFER_ORIGINAL_FIELDS);
     const cur = await query('SELECT invoice_no, status FROM transfers WHERE id = $1', [id]);
-    const expected = cur.length && cur[0].status === 'AWAITING_COPY' ? 'AWAITING_COPY' : 'PENDING';
-    if (expected === 'AWAITING_COPY') requireAdmin(req);       // only an admin may change a transfer that has already left Pending
+    const expected = 'PENDING';
     if (cur.length && String(cur[0].invoice_no).trim().toUpperCase() !== t.invoiceNo.trim().toUpperCase()) {
       await assertInvoiceFree(t.invoiceNo, id);
     }
@@ -69,11 +62,11 @@ module.exports = route(['PUT', 'PATCH', 'DELETE'], async function (req) {
     const body = req.body || {};
     const action = String(body.action || '');
 
-    if (action === 'complete') {             // step 1
+    if (action === 'complete') {             // PENDING -> COMPLETED
       const u = parseCompletion(body);
       const rows = await query(
         `UPDATE transfers
-            SET status = 'AWAITING_COPY', do_no = $1, pickup_date = $2::date, updated_by = $3, updated_at = now(),
+            SET status = 'COMPLETED', do_no = $1, pickup_date = $2::date, updated_by = $3, updated_at = now(),
                 attachments = attachments || $4::jsonb
           WHERE id = $5 AND status = 'PENDING' AND jsonb_array_length(attachments) + $6::int <= ${MAX_ATTACHMENTS}
           RETURNING ${TRANSFER_COLUMNS}`,
@@ -83,17 +76,17 @@ module.exports = route(['PUT', 'PATCH', 'DELETE'], async function (req) {
       return await withCounts(rows[0], req);
     }
 
-    if (action === 'copy') {                 // step 2
+    if (action === 'copy') {                 // additional data on a completed transfer (first entry or a change)
       const u = parseCopy(body);
       const rows = await query(
         `UPDATE transfers
-            SET status = 'COMPLETED', copy_returned_date = $1::date, copy_submitted_by = $2, copy_updated_at = now(),
+            SET copy_returned_date = $1::date, copy_submitted_by = $2, copy_updated_at = now(),
                 attachments = attachments || $3::jsonb
-          WHERE id = $4 AND status = 'AWAITING_COPY' AND jsonb_array_length(attachments) + $5::int <= ${MAX_ATTACHMENTS}
+          WHERE id = $4 AND status = 'COMPLETED' AND jsonb_array_length(attachments) + $5::int <= ${MAX_ATTACHMENTS}
           RETURNING ${TRANSFER_COLUMNS}`,
         [u.copyReturnedDate, u.copySubmittedBy, JSON.stringify(u.attachments), id, u.attachments.length]
       );
-      if (!rows.length) throw await whyNot(id, 'AWAITING_COPY', u.attachments.length);
+      if (!rows.length) throw await whyNot(id, 'COMPLETED', u.attachments.length);
       return await withCounts(rows[0], req);
     }
 
@@ -101,7 +94,7 @@ module.exports = route(['PUT', 'PATCH', 'DELETE'], async function (req) {
       const u = parseCompletion(body);
       const withCopy = body.copyReturnedDate !== undefined || body.copySubmittedBy !== undefined;   // a COMPLETED transfer also has copy details
       const c = withCopy ? parseCopy(body) : { copyReturnedDate: null, copySubmittedBy: null };
-      const expected = withCopy ? 'COMPLETED' : 'AWAITING_COPY';
+      const expected = 'COMPLETED';
       const rows = await query(
         `UPDATE transfers
             SET do_no = $1, pickup_date = $2::date, updated_by = $3, updated_at = now(),
@@ -116,37 +109,18 @@ module.exports = route(['PUT', 'PATCH', 'DELETE'], async function (req) {
       return await withCounts(rows[0], req);
     }
 
-    if (action === 'revert') {               // Management only: a COMPLETED transfer goes all the way back to Pending
+    if (action === 'revert') {               // Management only: a COMPLETED transfer goes back to Pending, with a reason
       if (req.user.category !== 'MANAGEMENT') throw new HttpError(403, 'Only Management can revert a completed transfer.', 'FORBIDDEN');
+      const reason = String(body.reason || '').trim().replace(/\s+/g, ' ');
+      if (reason.length < 3) throw new HttpError(400, 'Please enter the reason for reverting this transfer.');
+      if (reason.length > 300) throw new HttpError(400, 'The reason is too long (300 characters at most).');
       const rows = await query(
         `UPDATE transfers
             SET status = 'PENDING', do_no = NULL, pickup_date = NULL, updated_by = NULL, updated_at = NULL,
                 copy_returned_date = NULL, copy_submitted_by = NULL, copy_updated_at = NULL
           WHERE id = $1 AND status = 'COMPLETED' RETURNING ${TRANSFER_COLUMNS}, origin`, [id]);
       if (!rows.length) throw await whyNot(id, 'COMPLETED');
-      await audit(req, 'REVERT', 'TRANSFER', rows[0].invoiceNo, 'Completed -> Pending', null, rows[0].origin);
-      return await withCounts(rows[0], req);
-    }
-
-    if (action === 'undo') {
-      const from = String(body.from || '');
-      if (from === 'COMPLETED' && req.user.category !== 'MANAGEMENT') throw new HttpError(403, 'Only Management can reopen a completed transfer.', 'FORBIDDEN');
-      let rows;
-      if (from === 'COMPLETED') {
-        rows = await query(
-          `UPDATE transfers
-              SET status = 'AWAITING_COPY', copy_returned_date = NULL, copy_submitted_by = NULL, copy_updated_at = NULL
-            WHERE id = $1 AND status = 'COMPLETED' RETURNING ${TRANSFER_COLUMNS}`, [id]);
-      } else if (from === 'AWAITING_COPY') {
-        rows = await query(
-          `UPDATE transfers
-              SET status = 'PENDING', do_no = NULL, pickup_date = NULL, updated_by = NULL, updated_at = NULL,
-                  copy_returned_date = NULL, copy_submitted_by = NULL, copy_updated_at = NULL
-            WHERE id = $1 AND status = 'AWAITING_COPY' RETURNING ${TRANSFER_COLUMNS}`, [id]);
-      } else {
-        throw new HttpError(400, 'Say which step to undo.');
-      }
-      if (!rows.length) throw await whyNot(id, from);
+      await audit(req, 'REVERT', 'TRANSFER', rows[0].invoiceNo, 'Completed -> Pending / Reason: ' + reason, { reason }, rows[0].origin);
       return await withCounts(rows[0], req);
     }
 
@@ -181,19 +155,16 @@ module.exports = route(['PUT', 'PATCH', 'DELETE'], async function (req) {
   }
 
   requireAdmin(req);
-  // Only a PENDING transfer can be deleted (an Awaiting Copy-Document one must be sent back to Pending first), and a reason is required.
-  const reason = String((req.body && req.body.reason) || (req.query && req.query.reason) || '').trim().replace(/\s+/g, ' ');
-  if (reason.length < 3) throw new HttpError(400, 'Please enter the reason for deleting this transfer.');
-  if (reason.length > 300) throw new HttpError(400, 'The reason is too long (300 characters at most).');
+  // Only a PENDING transfer can be deleted (a completed one must be reverted to Pending first by Management).
   // delete + audit copy in ONE statement, so a deleted record always leaves a trace for Head Office. The audit copy keeps the details only
   // (no attachments); the attachment files themselves are removed from storage right after.
   const rows = await query(
     `WITH d AS (DELETE FROM transfers WHERE id = $1 AND status = 'PENDING' RETURNING *),
           a AS (INSERT INTO audit_log (actor, action, kind, ref, detail, snapshot, origin)
-                SELECT $2, 'DELETE', 'TRANSFER', invoice_no, transfer_to || ' / ' || status || ' / Reason: ' || $3::text,
-                       (to_jsonb(d) - 'attachments') || jsonb_build_object('delete_reason', $3::text), origin FROM d RETURNING id)
+                SELECT $2, 'DELETE', 'TRANSFER', invoice_no, transfer_to || ' / ' || status,
+                       (to_jsonb(d) - 'attachments'), origin FROM d RETURNING id)
      SELECT (SELECT attachments FROM d LIMIT 1) AS attachments, (SELECT count(*) FROM a)::int AS n`,
-    [id, req.user.loginId, reason]);
+    [id, req.user.loginId]);
   if (!rows.length || !rows[0].n) throw await whyNot(id, 'PENDING');
   const urls = (Array.isArray(rows[0].attachments) ? rows[0].attachments : []).map((x) => x && x.url).filter((u) => typeof u === 'string' && /^https:\/\//.test(u));
   if (urls.length) {
