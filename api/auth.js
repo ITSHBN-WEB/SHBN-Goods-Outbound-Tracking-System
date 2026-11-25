@@ -7,7 +7,7 @@
 //   POST account    { loginId, name, category }          -> Management: create an account (starting password = default)
 //   PATCH account   { loginId, active?, name?, reset? }  -> Management: deactivate / reactivate / rename / reset password to default
 //   GET  audit      ?kind=deleted|supplier|revert &q=    -> Head Office + Management: deleted records, supplier change log
-const { route, HttpError, query, audit } = require('../lib/core');
+const { route, HttpError, query, audit, TEST_OUTLET } = require('../lib/core');
 const C = require('../lib/core');
 
 const LOCK_AFTER = 5, LOCK_MINUTES = 10;
@@ -149,11 +149,22 @@ module.exports = route(['GET', 'POST', 'PATCH'], async function (req) {
     else if (kind === 'supplier') where.push("kind = 'SUPPLIER'");
     else if (kind === 'revert') where.push("action = 'REVERT'");
     else throw new HttpError(400, 'Unknown log.');
+    if (kind === 'deleted') {
+      // Head Office / Management must say which outlet (or ALL) and which dates before anything is listed
+      const outlet = String(req.query.outlet || '').trim().slice(0, 40), from = String(req.query.from || ''), to = String(req.query.to || '');
+      if (!outlet) throw new HttpError(400, 'Please select an outlet (or All outlets).');
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to)) throw new HttpError(400, 'Please choose the From and To dates.');
+      if (from > to) throw new HttpError(400, 'The From date is after the To date.');
+      if (outlet === 'ALL') where.push("COALESCE(origin, '') <> '" + TEST_OUTLET + "'");
+      else { params.push(outlet); where.push('origin = $' + params.length); }
+      params.push(from, to);
+      where.push("(at AT TIME ZONE 'Asia/Kuala_Lumpur')::date BETWEEN $" + (params.length - 1) + "::date AND $" + params.length + '::date');
+    }
     const needle = String(req.query.q || '').trim().slice(0, 80);
-    if (needle) { params.push('%' + needle.replace(/[\\%_]/g, '\\$&') + '%'); where.push('(ref ILIKE $1 OR detail ILIKE $1 OR actor ILIKE $1 OR COALESCE(origin, \'\') ILIKE $1)'); }
+    if (needle) { params.push('%' + needle.replace(/[\\%_]/g, '\\$&') + '%'); const n = params.length; where.push('(ref ILIKE $' + n + ' OR detail ILIKE $' + n + ' OR actor ILIKE $' + n + ' OR COALESCE(origin, \'\') ILIKE $' + n + ')'); }
     return await query(
       `SELECT id::text AS id, to_char(at AT TIME ZONE 'Asia/Kuala_Lumpur', 'FMDD.FMMM.YYYY FMHH12.MIPM') AS "at", actor, action, kind, ref, detail,
-              origin AS outlet, snapshot
+              origin AS outlet, (snapshot - 'attachments') AS snapshot
          FROM audit_log WHERE ${where.join(' AND ')} ORDER BY at DESC, id DESC LIMIT 500`, params);
   }
 

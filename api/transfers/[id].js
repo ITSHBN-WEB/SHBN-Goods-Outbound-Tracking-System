@@ -9,7 +9,7 @@
 //              { from: 'AWAITING_COPY' } -> PENDING (DO No / pickup date cleared)
 //   attach   = add attachments in any status          { attachments: [{url,name,type}] }
 //   detach   = remove one attachment in any status    { url }   (Outlet and Management; not Head Office)
-// DELETE /api/transfers/:id  while PENDING or AWAITING_COPY, admin only
+// DELETE /api/transfers/:id  while PENDING only (Outlet / Management), with a required { reason }; its attachment files are deleted too
 // Every change checks the row's current state inside the SQL itself, so two people acting at once cannot both win.
 const { route, HttpError, query, parseId, requireAdmin, scopeOf, assertOwn, audit } = require('../../lib/core');
 const { TRANSFER_COLUMNS, TRANSFER_ORIGINAL_FIELDS, MAX_ATTACHMENTS, parseTransfer, parseCompletion, parseCopy, parseAttachments, parseOriginal, originalSql } = require('../../lib/core');
@@ -181,12 +181,23 @@ module.exports = route(['PUT', 'PATCH', 'DELETE'], async function (req) {
   }
 
   requireAdmin(req);
-  // delete + audit copy in ONE statement, so a deleted record always leaves a trace for Head Office
+  // Only a PENDING transfer can be deleted (an Awaiting Copy-Document one must be sent back to Pending first), and a reason is required.
+  const reason = String((req.body && req.body.reason) || (req.query && req.query.reason) || '').trim().replace(/\s+/g, ' ');
+  if (reason.length < 3) throw new HttpError(400, 'Please enter the reason for deleting this transfer.');
+  if (reason.length > 300) throw new HttpError(400, 'The reason is too long (300 characters at most).');
+  // delete + audit copy in ONE statement, so a deleted record always leaves a trace for Head Office. The audit copy keeps the details only
+  // (no attachments); the attachment files themselves are removed from storage right after.
   const rows = await query(
-    `WITH d AS (DELETE FROM transfers WHERE id = $1 AND status IN ('PENDING', 'AWAITING_COPY') RETURNING *)
-     INSERT INTO audit_log (actor, action, kind, ref, detail, snapshot, origin)
-     SELECT $2, 'DELETE', 'TRANSFER', invoice_no, transfer_to || ' / ' || status, to_jsonb(d), origin FROM d RETURNING id`,
-    [id, req.user.loginId]);
-  if (!rows.length) throw await whyNot(id, 'PENDING');
+    `WITH d AS (DELETE FROM transfers WHERE id = $1 AND status = 'PENDING' RETURNING *),
+          a AS (INSERT INTO audit_log (actor, action, kind, ref, detail, snapshot, origin)
+                SELECT $2, 'DELETE', 'TRANSFER', invoice_no, transfer_to || ' / ' || status || ' / Reason: ' || $3::text,
+                       (to_jsonb(d) - 'attachments') || jsonb_build_object('delete_reason', $3::text), origin FROM d RETURNING id)
+     SELECT (SELECT attachments FROM d LIMIT 1) AS attachments, (SELECT count(*) FROM a)::int AS n`,
+    [id, req.user.loginId, reason]);
+  if (!rows.length || !rows[0].n) throw await whyNot(id, 'PENDING');
+  const urls = (Array.isArray(rows[0].attachments) ? rows[0].attachments : []).map((x) => x && x.url).filter((u) => typeof u === 'string' && /^https:\/\//.test(u));
+  if (urls.length) {
+    try { await require('@vercel/blob').del(urls); } catch (e) { console.error('attachment cleanup failed', e && e.message); }
+  }
   return Object.assign({ success: true }, await transferCounts(scopeOf(req)));
 });

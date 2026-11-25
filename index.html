@@ -1342,7 +1342,18 @@
       <div class="card">
         <h2 id="au_title">Deleted Records</h2>
         <p class="bk-help" id="au_help" style="margin-top:0;"></p>
-        <div class="field" style="margin-bottom:10px;"><input type="text" id="au_search" placeholder="Search" autocomplete="off"></div>
+        <div id="au_filter" style="display:none;">
+          <div class="row2">
+            <div class="field"><label>Outlet</label><select id="au_outlet"><option value="">Select outlet…</option></select></div>
+            <div class="field"><label>Deleted from</label><input type="date" id="au_from"></div>
+          </div>
+          <div class="row2">
+            <div class="field"><label>Deleted to</label><input type="date" id="au_to"></div>
+            <div class="field"><label>Search (optional)</label><input type="text" id="au_search2" placeholder="Invoice / RPO / reason" autocomplete="off"></div>
+          </div>
+          <div class="btn-row" style="margin-bottom:12px;"><button type="button" class="btn-primary" id="au_runBtn">Run</button></div>
+        </div>
+        <div class="field" id="au_searchWrap" style="margin-bottom:10px;"><input type="text" id="au_search" placeholder="Search" autocomplete="off"></div>
         <div class="list-empty" id="au_empty" style="display:none;">Nothing recorded yet.</div>
         <div id="au_list"></div>
       </div>
@@ -1599,6 +1610,11 @@
           </div>
         </div>
         <div class="td-grid" id="td_grid"></div>
+        <div id="td_delBox" style="display:none;margin-top:14px;padding:14px;border:1px solid rgba(248,113,113,.5);border-radius:12px;background:rgba(248,113,113,.07);">
+          <div class="field" style="margin-bottom:10px;"><label>Reason for deleting this transfer *</label><textarea id="td_delReason" rows="2" maxlength="300" placeholder="Why is this transfer being deleted?"></textarea></div>
+          <div class="btn-row"><button type="button" class="btn-danger" id="td_delConfirm">Confirm Delete</button><button type="button" class="btn-secondary" id="td_delCancel">Cancel</button></div>
+          <div class="status" id="td_delStatus"></div>
+        </div>
       </div>
 
       <div class="card" id="td_attCard">
@@ -4120,7 +4136,7 @@
       if (done) extra += it('Copy-Document Returned', t.copyReturnedDate ? fmtDateLong(t.copyReturnedDate) : '') + it('Submitted By', t.copySubmittedBy) + it('Completed', t.dateCopyUpdated);
       $id('td_grid').innerHTML = trGridHtml_(t, extra);
       $id('td_editBtn').style.display = (pend || (wait && isAdmin_())) ? '' : 'none';
-      $id('td_deleteBtn').style.display = ((pend || wait) && isAdmin_()) ? '' : 'none';
+      $id('td_deleteBtn').style.display = (pend && isAdmin_()) ? '' : 'none'; $id('td_delBox').style.display = 'none';
       renderTdAttachments_(t); $id('td_attFile').value = ''; $id('td_attInfo').textContent = ''; $id('td_attInfo').className = 'att-info';
 
       // card 1: DO No + pickup date
@@ -4237,12 +4253,19 @@
     });
 
     $id('td_deleteBtn').addEventListener('click', function () {
+      if (!trCurrent) return;
+      $id('td_delReason').value = ''; trStatus_('td_delStatus', '', ''); $id('td_delBox').style.display = ''; $id('td_delReason').focus();
+    });
+    $id('td_delCancel').addEventListener('click', function () { $id('td_delBox').style.display = 'none'; });
+    $id('td_delConfirm').addEventListener('click', function () {
       var t = trCurrent; if (!t) return;
-      if (!confirm('Delete ' + t.invoiceNo + '? This cannot be undone.')) return;
+      var reason = $id('td_delReason').value.trim();
+      if (reason.length < 3) { trStatus_('td_delStatus', 'error', 'Please enter the reason for deleting this transfer.'); return; }
+      if (!confirm('Delete ' + t.invoiceNo + '? Its attachments will be deleted too. This cannot be undone.')) return;
       var btn = this; btn.disabled = true;
-      api_('DELETE', '/api/transfers/' + t.id).then(function () {
-        btn.disabled = false; (t.status === 'AWAITING_COPY' ? goAwait_ : goPending_)('Deleted ' + t.invoiceNo + '.');
-      }).catch(function (err) { btn.disabled = false; if (err && err.code === 'ADMIN_REQUIRED') adminOff_(); trStatus_('td_status', 'error', err && err.message ? err.message : 'Could not delete.'); });
+      api_('DELETE', '/api/transfers/' + t.id, { reason: reason }).then(function () {
+        btn.disabled = false; $id('td_delBox').style.display = 'none'; goPending_('Deleted ' + t.invoiceNo + '.');
+      }).catch(function (err) { btn.disabled = false; if (err && err.code === 'ADMIN_REQUIRED') adminOff_(); trStatus_('td_delStatus', 'error', err && err.message ? err.message : 'Could not delete.'); });
     });
 
     // ---- attachments: add more / remove (any status; saved straight away) ----
@@ -4778,16 +4801,16 @@
       var opts = [];
       if (mg) opts.unshift({ v: TEST_STORE, t: 'Management (Test)', s: 'Practice store: safe for test entries', tag: 'TEST' });
       storeOutlets.forEach(function (o) { opts.push({ v: o, t: o, s: mg ? 'Work in this outlet’s records' : 'Monitor this outlet' }); });
-      $id('st_list').innerHTML = opts.map(function (o) {
-        return '<button type="button" class="st-card' + (o.v === cur ? ' on' : '') + '" data-v="' + escapeHtml(o.v === '' ? 'ALL' : o.v) + '"><span><b>' + escapeHtml(o.t) + '</b><small>' + escapeHtml(o.s) + '</small></span>' +
-          (o.v === cur ? '<span class="st-tag">ACTIVE</span>' : (o.tag ? '<span class="st-tag">' + o.tag + '</span>' : '')) + '</button>';
-      }).join('');
+      $id('st_list').innerHTML = '<div class="field" style="max-width:360px;"><label>Store</label><select id="st_select">' + opts.map(function (o) {
+        return '<option value="' + escapeHtml(o.v) + '"' + (o.v === cur ? ' selected' : '') + '>' + escapeHtml(o.t) + '</option>';
+      }).join('') + '</select></div><div class="btn-row"><button type="button" class="btn-primary" id="st_apply">Apply</button></div><p class="bk-help" id="st_now" style="margin-top:12px;">Currently working in: <b>' + escapeHtml(storeLabel_(cur)) + '</b></p>';
     }
     $id('navStores').addEventListener('click', function () { showScreen('storesScreen'); setActiveNav('navStores'); renderStores_(); });
     $id('st_back').addEventListener('click', function () { showScreen('homeScreen'); });
     $id('st_list').addEventListener('click', function (e) {
-      var b = e.target.closest && e.target.closest('.st-card'); if (!b) return;
-      ssSet_(VIEW_KEY, b.getAttribute('data-v')); location.reload();         // reload = a clean start in the chosen store
+      if (!(e.target && e.target.id === 'st_apply')) return;
+      var v = $id('st_select').value; if (!v) return;
+      ssSet_(VIEW_KEY, v); location.reload();         // reload = a clean start in the chosen store
     });
 
     // ---------- Accounts (Management) ----------
@@ -4861,14 +4884,21 @@
     // ---------- Deleted records / supplier change log (Head Office + Management) ----------
     var auKind = 'deleted', auTimer;
     var AU_TEXT_ = {
-      deleted: ['Deleted Records', 'Every pending return or transfer that was deleted, with who deleted it and what it held.'],
+      deleted: ['Deleted Records', 'Choose an outlet (or All outlets) and a date range, then Run. Shows the details of each deleted pending return or transfer, who deleted it and why. Attachments are removed when a record is deleted.'],
       supplier: ['Supplier Change Log', 'Every supplier added, renamed, deactivated or reactivated.']
     };
     var ACTION_TEXT_ = { DELETE: 'Deleted', REVERT: 'Reverted', SUPPLIER_ADD: 'Added', SUPPLIER_EDIT: 'Renamed', SUPPLIER_DEACTIVATE: 'Deactivated', SUPPLIER_ACTIVATE: 'Reactivated' };
     function loadAudit_() {
-      var q = $id('au_search').value.trim();
-      return api_('GET', '/api/auth?action=audit&kind=' + auKind + (q ? '&q=' + encodeURIComponent(q) : '')).then(function (rows) {
-        $id('au_empty').style.display = rows.length ? 'none' : 'block';
+      var del = auKind === 'deleted', q = (del ? $id('au_search2') : $id('au_search')).value.trim(), extra = '';
+      if (del) {
+        var oc = $id('au_outlet').value, f = $id('au_from').value, t = $id('au_to').value;
+        if (!oc) { alert('Please select an outlet, or All outlets.'); return Promise.resolve(); }
+        if (!f || !t) { alert('Please choose both the From and To dates.'); return Promise.resolve(); }
+        if (f > t) { alert('The From date is after the To date.'); return Promise.resolve(); }
+        extra = '&outlet=' + encodeURIComponent(oc) + '&from=' + f + '&to=' + t;
+      }
+      return api_('GET', '/api/auth?action=audit&kind=' + auKind + extra + (q ? '&q=' + encodeURIComponent(q) : '')).then(function (rows) {
+        $id('au_empty').style.display = rows.length ? 'none' : 'block'; $id('au_empty').textContent = auKind === 'deleted' ? 'No deleted records for that outlet and period.' : 'Nothing recorded yet.';
         $id('au_list').innerHTML = rows.map(function (r) {
           var snap = '';
           if (r.snapshot) {
@@ -4883,10 +4913,17 @@
     }
     function openAudit_(kind) {
       auKind = kind; showScreen('auditScreen'); setActiveNav(kind === 'deleted' ? 'navDeleted' : 'navSupLog');
-      $id('au_title').textContent = AU_TEXT_[kind][0]; $id('au_help').textContent = AU_TEXT_[kind][1]; $id('au_search').value = ''; loadAudit_();
+      $id('au_title').textContent = AU_TEXT_[kind][0]; $id('au_help').textContent = AU_TEXT_[kind][1]; $id('au_search').value = '';
+      $id('au_filter').style.display = kind === 'deleted' ? '' : 'none'; $id('au_searchWrap').style.display = kind === 'deleted' ? 'none' : '';
+      $id('au_list').innerHTML = ''; $id('au_empty').style.display = 'none';
+      if (kind === 'deleted') {
+        $id('au_outlet').innerHTML = '<option value="">Select outlet…</option><option value="ALL">All outlets</option>' + storeOutlets.map(function (o) { return '<option value="' + escapeHtml(o) + '">' + escapeHtml(o) + '</option>'; }).join('');
+        $id('au_search2').value = ''; if (!$id('au_from').value) { var d0 = new Date(); $id('au_to').value = todayIso_(); d0.setDate(d0.getDate() - 30); $id('au_from').value = d0.getFullYear() + '-' + String(d0.getMonth() + 1).padStart(2, '0') + '-' + String(d0.getDate()).padStart(2, '0'); }
+      } else loadAudit_();
     }
     $id('navDeleted').addEventListener('click', function () { openAudit_('deleted'); });
     $id('navSupLog').addEventListener('click', function () { openAudit_('supplier'); });
+    $id('au_runBtn').addEventListener('click', loadAudit_);
     $id('au_back').addEventListener('click', function () { showScreen('homeScreen'); });
     $id('au_search').addEventListener('input', function () { clearTimeout(auTimer); auTimer = setTimeout(loadAudit_, 300); });
   </script>
