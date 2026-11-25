@@ -4,7 +4,7 @@
 // Vercel limits a request body to 4.5 MB, so the page shrinks photos first and refuses larger files.
 const { route, HttpError } = require('../../lib/core');
 
-const MAX_BYTES = 4 * 1024 * 1024 + 400 * 1024;      // just under Vercel's 4.5 MB request limit
+const MAX_BYTES = 1024 * 1024;      // 1 MB per attachment
 const TYPES = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'application/pdf': 'pdf' };
 
 function sniff(buf) {   // the first bytes must really match the declared type
@@ -19,7 +19,7 @@ async function readBody(req) {
   if (Buffer.isBuffer(req.body)) return req.body;
   if (typeof req.body === 'string') return Buffer.from(req.body, 'binary');
   const chunks = []; let size = 0;
-  for await (const c of req) { size += c.length; if (size > MAX_BYTES) throw new HttpError(413, 'File is too large (max 4 MB).'); chunks.push(c); }
+  for await (const c of req) { size += c.length; if (size > MAX_BYTES) throw new HttpError(413, 'File is too large (max 1 MB).'); chunks.push(c); }
   return Buffer.concat(chunks);
 }
 
@@ -31,7 +31,7 @@ module.exports = route(['POST'], async function (req) {
   if (!TYPES[type]) throw new HttpError(400, 'Only pictures (JPG, PNG, WEBP) and PDF files are allowed.');
   const buf = await readBody(req);
   if (!buf.length) throw new HttpError(400, 'The file is empty.');
-  if (buf.length > MAX_BYTES) throw new HttpError(413, 'File is too large (max 4 MB).');
+  if (buf.length > MAX_BYTES) throw new HttpError(413, 'File is too large (max 1 MB).');
   if (sniff(buf) !== type) throw new HttpError(400, 'The file content does not match its type.');
 
   const name = String((req.query && req.query.filename) || 'attachment').replace(/[^\w.\- ]+/g, '_').slice(0, 100) || 'attachment';
